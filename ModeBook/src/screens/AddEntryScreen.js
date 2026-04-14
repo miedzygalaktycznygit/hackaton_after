@@ -1,13 +1,75 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 import { Activity, X, Smile, Frown, Utensils, Moon, Droplet } from 'lucide-react-native';
 import TabBar from '../components/TabBar';
 
+
 export default function AddEntryScreen({ navigation }) {
   const [selectedMood, setSelectedMood] = useState('Neutral');
   const [painLevel, setPainLevel] = useState(null);
+  const [painNotes, setPainNotes] = useState('');
+  const [nutrition, setNutrition] = useState('');
+  const [sleepHours, setSleepHours] = useState('8');
+  const [waterIntake, setWaterIntake] = useState('1.5');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sliderWidth, setSliderWidth] = useState(0);
+
+  const handleSleepTouch = (evt) => {
+    if (sliderWidth > 0) {
+      const x = evt.nativeEvent.locationX;
+      let hours = Math.round((x / sliderWidth) * 12);
+      if (hours < 0) hours = 0;
+      if (hours > 12) hours = 12;
+      setSleepHours(hours.toString());
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!painLevel) {
+      Alert.alert('Brak danych', 'Proszę zaznaczyć czy wystąpił ból.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    const payload = {
+      painLevel,
+      painNotes,
+      nutrition,
+      sleepHours: parseFloat(sleepHours) || 0,
+      waterIntake: parseFloat(waterIntake) || 0,
+      notes
+    };
+
+    try {
+      const response = await fetch('http://TEST_ADRES/api/entries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        Alert.alert('Sukces', 'Zapisano pomyślnie na serwerze!');
+        navigation.goBack();
+      } else {
+        Alert.alert('Błąd', 'Nie udało się zapisać danych.');
+      }
+    } catch (error) {
+       console.log('Brak dostępnego serwera (tryb deweloperski):', error);
+       Alert.alert(
+         'Sukces (Tryb Testowy)', 
+         'Udana symulacja wysyłki pod dres:\nhttp://TEST_ADRES/api/entries\n\nWysłane dane:\n' + JSON.stringify(payload, null, 2)
+       );
+       navigation.goBack();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -37,7 +99,7 @@ export default function AddEntryScreen({ navigation }) {
           <View style={styles.painButtonsRow}>
             <TouchableOpacity
               style={[styles.painButton, painLevel === 'No Pain' && styles.painButtonActive]}
-              onPress={() => setPainLevel('No Pain')}
+              onPress={() => { setPainLevel('No Pain'); setPainNotes(''); }}
             >
               <Text style={[styles.painButtonText, painLevel === 'No Pain' && styles.painButtonTextActive]}>Bez bólu</Text>
             </TouchableOpacity>
@@ -48,6 +110,18 @@ export default function AddEntryScreen({ navigation }) {
               <Text style={[styles.painButtonText, styles.painButtonTextSecondary, painLevel === 'Yes, it hurt' && styles.painButtonTextSecondaryActive]}>Tak, bolało</Text>
             </TouchableOpacity>
           </View>
+
+          {painLevel === 'Yes, it hurt' && (
+            <View style={{ marginTop: SIZES.medium, backgroundColor: COLORS.surface, borderRadius: SIZES.xl, paddingHorizontal: SIZES.medium }}>
+              <TextInput
+                style={[styles.input, { height: 50 }]}
+                placeholder="Napisz więcej o tym bólu (opcjonalnie)"
+                placeholderTextColor={COLORS.textSecondary}
+                value={painNotes}
+                onChangeText={setPainNotes}
+              />
+            </View>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -58,6 +132,8 @@ export default function AddEntryScreen({ navigation }) {
               style={styles.input}
               placeholder="Co dzisiaj zjadłeś?"
               placeholderTextColor={COLORS.textSecondary}
+              value={nutrition}
+              onChangeText={setNutrition}
             />
           </View>
         </View>
@@ -68,14 +144,27 @@ export default function AddEntryScreen({ navigation }) {
               <Moon size={20} color={COLORS.primary} />
             </View>
             <View style={styles.cardTitleRow}>
-              <Text style={styles.cardValue}>8</Text>
+              <TextInput 
+                style={[styles.cardValue, { padding: 0 }]}
+                value={sleepHours}
+                onChangeText={setSleepHours}
+                keyboardType="numeric"
+                maxLength={4}
+              />
               <Text style={styles.cardUnit}>godz</Text>
             </View>
           </View>
           <Text style={styles.cardSubtitleInfo}>Ilość snu</Text>
-          <View style={styles.sliderTrack}>
-            <View style={[styles.sliderFill, { width: '60%' }]} />
-            <View style={styles.sliderThumb} />
+          <View 
+            style={[styles.sliderTrack, { height: 30, backgroundColor: 'transparent', justifyContent: 'center' }]}
+            onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
+            onStartShouldSetResponder={() => true}
+            onResponderGrant={handleSleepTouch}
+            onResponderMove={handleSleepTouch}
+          >
+            <View style={{ height: 6, backgroundColor: '#A0C6EB', borderRadius: 3, width: '100%', position: 'absolute' }} />
+            <View pointerEvents="none" style={[styles.sliderFill, { width: `${Math.min(100, (parseFloat(sleepHours) || 0) / 12 * 100)}%`, position: 'absolute' }]} />
+            <View pointerEvents="none" style={[styles.sliderThumb, { position: 'absolute', left: `${Math.min(100, (parseFloat(sleepHours) || 0) / 12 * 100)}%`, marginLeft: -7 }]} />
           </View>
         </View>
 
@@ -85,16 +174,29 @@ export default function AddEntryScreen({ navigation }) {
               <Droplet size={20} color={COLORS.primary} />
             </View>
             <View style={styles.cardTitleRow}>
-              <Text style={styles.cardValue}>1.5</Text>
+              <TextInput 
+                style={[styles.cardValue, { padding: 0 }]}
+                value={waterIntake}
+                onChangeText={setWaterIntake}
+                keyboardType="numeric"
+                maxLength={5}
+              />
               <Text style={styles.cardUnit}>L</Text>
             </View>
           </View>
           <Text style={styles.cardSubtitleInfo}>Wypita woda</Text>
           <View style={styles.waterTrackerRow}>
-            <View style={styles.waterSegmentActive} />
-            <View style={styles.waterSegmentActive} />
-            <View style={styles.waterSegmentInactive} />
-            <View style={styles.waterSegmentInactive} />
+            {[1, 2, 3, 4].map((segment) => (
+              <TouchableOpacity 
+                key={segment}
+                style={{ flex: 1, height: 30, justifyContent: 'center' }}
+                onPress={() => setWaterIntake((segment * 0.5).toString())}
+              >
+                <View 
+                  style={(parseFloat(waterIntake) || 0) >= segment * 0.5 ? styles.waterSegmentActive : styles.waterSegmentInactive} 
+                />
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -108,12 +210,22 @@ export default function AddEntryScreen({ navigation }) {
               multiline={true}
               numberOfLines={4}
               textAlignVertical="top"
+              value={notes}
+              onChangeText={setNotes}
             />
           </View>
         </View>
 
-        <TouchableOpacity style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Zapisz dzisiejszy wpis</Text>
+        <TouchableOpacity 
+          style={[styles.primaryButton, isSubmitting && { opacity: 0.7 }]}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color={COLORS.surface} size="small" />
+          ) : (
+            <Text style={styles.primaryButtonText}>Zapisz dzisiejszy wpis</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.quoteCard}>
