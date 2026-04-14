@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 import { Activity, X, Smile, Frown, Utensils, Moon, Droplet } from 'lucide-react-native';
 import TabBar from '../components/TabBar';
@@ -25,65 +26,37 @@ export default function AddEntryScreen({ navigation }) {
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.titleSection}>
-          <Text style={styles.subtitle}>DAILY CHECK-IN</Text>
-          <Text style={styles.title}>How are you{'\n'}feeling today?</Text>
+          <Text style={styles.subtitle}>CODZIENNY MELDUNEK</Text>
+          <Text style={styles.title}>Jak się dzisiaj{'\n'}czujesz?</Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Daily Mood</Text>
-          <View style={styles.moodSelector}>
-            <TouchableOpacity
-              style={[styles.moodItem, selectedMood === 'Great' && styles.moodItemActive]}
-              onPress={() => setSelectedMood('Great')}
-            >
-              <Smile size={32} color={COLORS.text} />
-              <Text style={styles.moodText}>Great</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.moodItem, selectedMood === 'Neutral' && styles.moodItemActive]}
-              onPress={() => setSelectedMood('Neutral')}
-            >
-              <Smile size={32} color={COLORS.text} />
-              <Text style={styles.moodText}>Neutral</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.moodItem, selectedMood === 'Bad' && styles.moodItemActive]}
-              onPress={() => setSelectedMood('Bad')}
-            >
-              <Frown size={32} color={COLORS.text} />
-              <Text style={styles.moodText}>Bad</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         <View style={styles.painSection}>
-          <Text style={styles.sectionTitleSecondary}>Did it hurt?</Text>
-          <Text style={styles.painDescription}>Record any physical discomfort experienced.</Text>
+          <Text style={styles.sectionTitleSecondary}>Czy bolało?</Text>
+          <Text style={styles.painDescription}>Zapisz czy odczuwałeś jakikolwiek ból fizyczny.</Text>
           <View style={styles.painButtonsRow}>
             <TouchableOpacity
               style={[styles.painButton, painLevel === 'No Pain' && styles.painButtonActive]}
               onPress={() => setPainLevel('No Pain')}
             >
-              <Text style={[styles.painButtonText, painLevel === 'No Pain' && styles.painButtonTextActive]}>No Pain</Text>
+              <Text style={[styles.painButtonText, painLevel === 'No Pain' && styles.painButtonTextActive]}>Bez bólu</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.painButton, styles.painButtonSecondary, painLevel === 'Yes, it hurt' && styles.painButtonSecondaryActive]}
               onPress={() => setPainLevel('Yes, it hurt')}
             >
-              <Text style={[styles.painButtonText, styles.painButtonTextSecondary, painLevel === 'Yes, it hurt' && styles.painButtonTextSecondaryActive]}>Yes, it hurt</Text>
+              <Text style={[styles.painButtonText, styles.painButtonTextSecondary, painLevel === 'Yes, it hurt' && styles.painButtonTextSecondaryActive]}>Tak, bolało</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nutrition Intake</Text>
+          <Text style={styles.sectionTitle}>Odżywianie</Text>
           <View style={styles.inputContainer}>
             <Utensils size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="What did you eat today?"
+              placeholder="Co dzisiaj zjadłeś?"
               placeholderTextColor={COLORS.textSecondary}
             />
           </View>
@@ -96,10 +69,10 @@ export default function AddEntryScreen({ navigation }) {
             </View>
             <View style={styles.cardTitleRow}>
               <Text style={styles.cardValue}>8</Text>
-              <Text style={styles.cardUnit}>hrs</Text>
+              <Text style={styles.cardUnit}>godz</Text>
             </View>
           </View>
-          <Text style={styles.cardSubtitleInfo}>Hours of sleep</Text>
+          <Text style={styles.cardSubtitleInfo}>Ilość snu</Text>
           <View style={styles.sliderTrack}>
             <View style={[styles.sliderFill, { width: '60%' }]} />
             <View style={styles.sliderThumb} />
@@ -116,7 +89,7 @@ export default function AddEntryScreen({ navigation }) {
               <Text style={styles.cardUnit}>L</Text>
             </View>
           </View>
-          <Text style={styles.cardSubtitleInfo}>Water intake</Text>
+          <Text style={styles.cardSubtitleInfo}>Wypita woda</Text>
           <View style={styles.waterTrackerRow}>
             <View style={styles.waterSegmentActive} />
             <View style={styles.waterSegmentActive} />
@@ -126,11 +99,11 @@ export default function AddEntryScreen({ navigation }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Treatment progress and notes</Text>
+          <Text style={styles.sectionTitle}>Postęp leczenia i notatki</Text>
           <View style={styles.textAreaContainer}>
             <TextInput
               style={styles.textArea}
-              placeholder="Share your reflections or any changes in your recovery process..."
+              placeholder="Opisz jak przebiega leczenie i podziel się swoimi refleksjami..."
               placeholderTextColor={COLORS.textSecondary}
               multiline={true}
               numberOfLines={4}
@@ -140,14 +113,14 @@ export default function AddEntryScreen({ navigation }) {
         </View>
 
         <TouchableOpacity style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Save Daily Entry</Text>
+          <Text style={styles.primaryButtonText}>Zapisz dzisiejszy wpis</Text>
         </TouchableOpacity>
 
         <View style={styles.quoteCard}>
           <Text style={styles.quoteText}>
-            "Healing is not linear, but every small entry is a step toward your whole self."
+            "Leczenie nie jest liniowe, ale każdy mały wpis to krok w stronę Twojego pełnego zdrowia."
           </Text>
-          <Text style={styles.quoteAuthor}>SANCTUARY WISDOM</Text>
+          <Text style={styles.quoteAuthor}>MĄDROŚĆ SANKTUARIUM</Text>
         </View>
 
         <View style={{ height: 40 }} />
@@ -217,24 +190,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: SIZES.medium,
   },
-  moodSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  moodItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E6F2E8',
-    borderRadius: 50,
-    paddingVertical: SIZES.padding,
-    marginHorizontal: 5,
-  },
-  moodItemActive: {
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    backgroundColor: '#D1E8D5',
-  },
+
   moodText: {
     ...FONTS.medium,
     fontSize: SIZES.small,

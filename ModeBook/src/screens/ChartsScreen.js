@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 import { Activity, Moon, Droplets, Wind, Smile, Frown } from 'lucide-react-native';
 import TabBar from '../components/TabBar';
@@ -16,17 +17,17 @@ export default function ChartsScreen({ navigation }) {
         </View>
 
         <View style={styles.titleSection}>
-          <Text style={styles.subtitle}>WEEKLY OVERVIEW</Text>
-          <Text style={styles.title}>Your Vital{'\n'}<Text style={styles.titleItalic}>Equilibrium</Text></Text>
+          <Text style={styles.subtitle}>PODSUMOWANIE TYGODNIA</Text>
+          <Text style={styles.title}>Twoja Życiowa{'\n'}<Text style={styles.titleItalic}>Równowaga</Text></Text>
         </View>
 
         <View style={styles.insightsSection}>
-          <Text style={styles.sectionTitle}>AI INSIGHTS & RECOMMENDATIONS</Text>
+          <Text style={styles.sectionTitle}>WNIOSKI I REKOMENDACJE AI</Text>
 
           <View style={[styles.insightCard, { backgroundColor: '#E0F0E3' }]}>
             <View style={styles.insightHeaderRow}>
               <Moon size={16} color={COLORS.primary} />
-              <Text style={styles.insightTitle}>Better Rest</Text>
+              <Text style={styles.insightTitle}>Lepszy Odpoczynek</Text>
             </View>
             <Text style={styles.insightText}>Spróbuj położyć się 15 minut wcześniej, aby poprawić jakość snu.</Text>
           </View>
@@ -34,7 +35,7 @@ export default function ChartsScreen({ navigation }) {
           <View style={[styles.insightCard, { backgroundColor: '#E6F0F6' }]}>
             <View style={styles.insightHeaderRow}>
               <Droplets size={16} color="#2D5A88" />
-              <Text style={[styles.insightTitle, { color: '#2D5A88' }]}>Hydration Boost</Text>
+              <Text style={[styles.insightTitle, { color: '#2D5A88' }]}>Więcej Wody</Text>
             </View>
             <Text style={styles.insightText}>Wypij szklankę wody przed następnym posiłkiem.</Text>
           </View>
@@ -42,7 +43,7 @@ export default function ChartsScreen({ navigation }) {
           <View style={[styles.insightCard, { backgroundColor: '#E0EAE2' }]}>
             <View style={styles.insightHeaderRow}>
               <Wind size={16} color={COLORS.primary} />
-              <Text style={styles.insightTitle}>Mindful Moment</Text>
+              <Text style={styles.insightTitle}>Chwila Uważności</Text>
             </View>
             <Text style={styles.insightText}>Znajdź 5 minut na głębokie oddychanie w południe.</Text>
           </View>
@@ -50,7 +51,7 @@ export default function ChartsScreen({ navigation }) {
 
         <View style={styles.wellnessScore}>
           <View>
-            <Text style={styles.wellnessLabel}>Overall wellness</Text>
+            <Text style={styles.wellnessLabel}>Ogólne samopoczucie</Text>
             <Text style={styles.wellnessValue}>88%</Text>
           </View>
           <View style={styles.wellnessDial}>
@@ -62,11 +63,11 @@ export default function ChartsScreen({ navigation }) {
           <View style={styles.chartCard}>
             <View style={styles.chartHeader}>
               <View>
-                <Text style={styles.chartTitle}>Sleep patterns</Text>
-                <Text style={styles.chartSubtitle}>Quality duration over the{'\n'}last 7 days</Text>
+                <Text style={styles.chartTitle}>Wzorce snu</Text>
+                <Text style={styles.chartSubtitle}>Jakość i czas trwania w{'\n'}ostatnich 7 dniach</Text>
               </View>
               <View style={styles.avgBadge}>
-                <Text style={styles.avgBadgeText}>Avg</Text>
+                <Text style={styles.avgBadgeText}>Średnio</Text>
                 <Text style={styles.avgBadgeValue}>7.4h</Text>
               </View>
             </View>
@@ -82,22 +83,22 @@ export default function ChartsScreen({ navigation }) {
             </View>
 
             <View style={styles.daysRow}>
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+              {['Pon', 'Wto', 'Śro', 'Czw', 'Pią', 'Sob', 'Nie'].map(day => (
                 <Text key={day} style={styles.chartDayText}>{day}</Text>
               ))}
             </View>
           </View>
 
           <View style={[styles.chartCard, { backgroundColor: '#A4E8B0' }]}>
-            <Text style={styles.chartTitle}>Mood trends</Text>
-            <Text style={styles.chartSubtitle}>Emotional resonance</Text>
+            <Text style={styles.chartTitle}>Trendy nastroju</Text>
+            <Text style={styles.chartSubtitle}>Rezonans emocjonalny</Text>
 
             <View style={styles.trendRow}>
               <View style={styles.trendIconWrapper}>
                 <Smile size={16} color={COLORS.primary} />
               </View>
               <View style={styles.trendBarContainer}>
-                <Text style={styles.trendLabel}>SERENE</Text>
+                <Text style={styles.trendLabel}>RADOŚĆ</Text>
                 <View style={styles.trendBarTrack}>
                   <View style={[styles.trendBarFill, { width: '65%' }]} />
                 </View>
@@ -107,10 +108,10 @@ export default function ChartsScreen({ navigation }) {
 
             <View style={styles.trendRow}>
               <View style={styles.trendIconWrapper}>
-                <Smile size={16} color={COLORS.primary} />
+                <Frown size={16} color={COLORS.primary} />
               </View>
               <View style={styles.trendBarContainer}>
-                <Text style={styles.trendLabel}>BALANCED</Text>
+                <Text style={styles.trendLabel}>SMUTEK</Text>
                 <View style={styles.trendBarTrack}>
                   <View style={[styles.trendBarFill, { width: '25%' }]} />
                 </View>
@@ -123,12 +124,24 @@ export default function ChartsScreen({ navigation }) {
                 <Frown size={16} color={COLORS.primary} />
               </View>
               <View style={styles.trendBarContainer}>
-                <Text style={styles.trendLabel}>TIRED</Text>
+                <Text style={styles.trendLabel}>ZŁOŚĆ</Text>
                 <View style={styles.trendBarTrack}>
                   <View style={[styles.trendBarFill, { width: '10%' }]} />
                 </View>
               </View>
               <Text style={styles.trendValue}>10%</Text>
+            </View>
+            <View style={styles.trendRow}>
+              <View style={styles.trendIconWrapper}>
+                <Frown size={16} color={COLORS.primary} />
+              </View>
+              <View style={styles.trendBarContainer}>
+                <Text style={styles.trendLabel}>STRES</Text>
+                <View style={styles.trendBarTrack}>
+                  <View style={[styles.trendBarFill, { width: '65%' }]} />
+                </View>
+              </View>
+              <Text style={styles.trendValue}>65%</Text>
             </View>
           </View>
 
@@ -136,13 +149,13 @@ export default function ChartsScreen({ navigation }) {
             <View style={styles.radialChartContainer}>
               <View style={styles.radialDial}>
                 <Text style={styles.radialValue}>2.1</Text>
-                <Text style={styles.radialUnit}>LITERS</Text>
+                <Text style={styles.radialUnit}>LITRÓW</Text>
               </View>
             </View>
-            <Text style={styles.chartTitle}>Water intake</Text>
-            <Text style={styles.chartSubtitle}>You've reached 75% of your daily hydration target. Keep flowing.</Text>
+            <Text style={styles.chartTitle}>Nawodnienie</Text>
+            <Text style={styles.chartSubtitle}>Osiągnąłeś 75% dziennego celu nawodnienia. Tak trzymaj.</Text>
             <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Add +250ml</Text>
+              <Text style={styles.actionButtonText}>Dodaj +250ml</Text>
             </TouchableOpacity>
           </View>
 

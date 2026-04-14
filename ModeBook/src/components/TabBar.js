@@ -38,7 +38,7 @@ const TabBar = () => {
 const styles = StyleSheet.create({
   tabBarContainer: {
     backgroundColor: '#F7FBF8',
-    paddingBottom: 20,
+    paddingBottom: 2,
     paddingTop: 10,
   },
   tabBar: {

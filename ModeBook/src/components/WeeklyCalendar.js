@@ -2,14 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 
-const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const days = ['Pon', 'Wto', 'Śro', 'Czw', 'Pią', 'Sob', 'Nie'];
 const dates = [15, 16, 17, 18, 19, 20, 21];
 
 const WeeklyCalendar = ({ currentDate = 17 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>WEEKLY OVERVIEW</Text>
-      <Text style={styles.headerDate}>April 2024</Text>
+      <Text style={styles.headerTitle}>PODSUMOWANIE TYGODNIA</Text>
+      <Text style={styles.headerDate}>Kwiecień 2024</Text>
 
       <View style={styles.calendarCard}>
         <View style={styles.daysRow}>

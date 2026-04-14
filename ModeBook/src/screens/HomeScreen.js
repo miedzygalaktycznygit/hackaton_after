@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import EntryCard from '../components/EntryCard';
@@ -11,12 +12,12 @@ const ENTRIES = [
     id: 1,
     mood: 'balanced',
     iconBg: '#CCF2EC',
-    dateTitle: 'Wednesday,\nApril 17',
-    time: '8:30 AM Reflection',
-    status: 'Balanced',
+    dateTitle: 'Środa,\n17 Kwietnia',
+    time: 'Odbicie z 8:30',
+    status: 'Zrównoważony',
     badgeBg: '#E2F3E7',
     badgeColor: '#183A20',
-    description: 'Woke up feeling remarkably rested. The morning air was crisp and the meditation session felt deeper than usual. Energy levels are steady.',
+    description: 'Obudziłem się niezwykle wypoczęty. Poranne powietrze było rześkie, a sesja medytacyjna wydawała się głębsza niż zwykle. Poziom energii jest stabilny.',
     metrics: [
       { icon: <Heart size={14} color="#55825D" />, text: '92 bpm' },
       { icon: <Moon size={14} color="#2D5A88" />, text: '7h 45m' },
@@ -26,14 +27,14 @@ const ENTRIES = [
     id: 2,
     mood: 'happy',
     iconBg: '#CBE5FD',
-    dateTitle: 'Tuesday, April\n16',
-    time: '9:15 PM Reflection',
-    status: 'Radiant',
+    dateTitle: 'Wtorek,\n16 Kwietnia',
+    time: 'Odbicie z 21:15',
+    status: 'Promienny',
     badgeBg: '#EAF3FF',
     badgeColor: '#2D5A88',
-    description: 'Incredible productivity today. Managed to complete the project milestone and still had energy for a sunset walk in the park. Grateful for the clarity.',
+    description: 'Niesamowita produktywność dzisiaj. Udało się ukończyć kamień milowy projektu i wciąż starczyło energii na spacer po parku o zachodzie słońca. Wdzięczny za tę jasność umysłu.',
     metrics: [
-      { icon: <Zap size={14} color="#183A20" />, text: 'High Focus' },
+      { icon: <Zap size={14} color="#183A20" />, text: 'Wysokie Skupienie' },
       { icon: <Activity size={14} color="#2D5A88" />, text: '12,400' },
     ]
   },
@@ -41,14 +42,14 @@ const ENTRIES = [
     id: 3,
     mood: 'neutral',
     iconBg: '#D1E1D4',
-    dateTitle: 'Monday, April\n15',
-    time: '7:00 PM Reflection',
-    status: 'Restorative',
+    dateTitle: 'Poniedziałek,\n15 Kwietnia',
+    time: 'Odbicie z 19:00',
+    status: 'Odprężający',
     badgeBg: '#E8F1E9',
     badgeColor: '#183A20',
-    description: 'A bit of a slow start to the week. Focused on hydration and low-impact movement. Feeling slightly drained but emotionally stable.',
+    description: 'Trochę powolny początek tygodnia. Skupiłem się na nawodnieniu i lekkim ruchu. Czułem się nieco wyczerpany, ale stabilny emocjonalnie.',
     metrics: [
-      { icon: <Droplets size={14} color="#A73A3A" />, text: '2.1L Water' },
+      { icon: <Droplets size={14} color="#A73A3A" />, text: '2.1L Wody' },
     ]
   }
 ];
@@ -67,7 +68,7 @@ export default function HomeScreen({ navigation }) {
         <WeeklyCalendar currentDate={17} />
 
         <View style={styles.entriesSection}>
-          <Text style={styles.sectionTitle}>Recent Reflections</Text>
+          <Text style={styles.sectionTitle}>Ostatnie Wpisy</Text>
 
           {ENTRIES.map(entry => (
             <EntryCard key={entry.id} entry={entry} />

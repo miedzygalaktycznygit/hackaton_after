@@ -2,13 +2,13 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigation from './src/navigation/AppNavigation';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 export default function App() {
   return (
-    <SafeAreaView>
+    <SafeAreaProvider style={{ flex: 1 }}>
       <StatusBar style="dark" />
       <AppNavigation />
-    </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
