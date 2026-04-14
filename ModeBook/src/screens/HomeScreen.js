@@ -1,87 +1,98 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
+import { getActiveDate, API_BASE, USER_ID } from '../constants/testConfig';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import EntryCard from '../components/EntryCard';
 import TabBar from '../components/TabBar';
-import { Heart, Moon, Zap, Activity, Droplets, Plus } from 'lucide-react-native';
+import { Activity, Plus } from 'lucide-react-native';
 
-const ENTRIES = [
-  {
-    id: 1,
-    mood: 'balanced',
-    iconBg: '#CCF2EC',
-    dateTitle: 'Środa,\n17 Kwietnia',
-    time: 'Odbicie z 8:30',
-    status: 'Zrównoważony',
-    badgeBg: '#E2F3E7',
-    badgeColor: '#183A20',
-    description: 'Obudziłem się niezwykle wypoczęty. Poranne powietrze było rześkie, a sesja medytacyjna wydawała się głębsza niż zwykle. Poziom energii jest stabilny.',
-    metrics: [
-      { icon: <Heart size={14} color="#55825D" />, text: '92 bpm' },
-      { icon: <Moon size={14} color="#2D5A88" />, text: '7h 45m' },
-    ]
-  },
-  {
-    id: 2,
-    mood: 'happy',
-    iconBg: '#CBE5FD',
-    dateTitle: 'Wtorek,\n16 Kwietnia',
-    time: 'Odbicie z 21:15',
-    status: 'Promienny',
-    badgeBg: '#EAF3FF',
-    badgeColor: '#2D5A88',
-    description: 'Niesamowita produktywność dzisiaj. Udało się ukończyć kamień milowy projektu i wciąż starczyło energii na spacer po parku o zachodzie słońca. Wdzięczny za tę jasność umysłu.',
-    metrics: [
-      { icon: <Zap size={14} color="#183A20" />, text: 'Wysokie Skupienie' },
-      { icon: <Activity size={14} color="#2D5A88" />, text: '12,400' },
-    ]
-  },
-  {
-    id: 3,
-    mood: 'neutral',
-    iconBg: '#D1E1D4',
-    dateTitle: 'Poniedziałek,\n15 Kwietnia',
-    time: 'Odbicie z 19:00',
-    status: 'Odprężający',
-    badgeBg: '#E8F1E9',
-    badgeColor: '#183A20',
-    description: 'Trochę powolny początek tygodnia. Skupiłem się na nawodnieniu i lekkim ruchu. Czułem się nieco wyczerpany, ale stabilny emocjonalnie.',
-    metrics: [
-      { icon: <Droplets size={14} color="#A73A3A" />, text: '2.1L Wody' },
-    ]
-  }
-];
+function isSameDay(a, b) {
+  const da = new Date(a);
+  const db = new Date(b);
+  return da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate();
+}
 
 export default function HomeScreen({ navigation }) {
+  const [weekNotes, setWeekNotes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const today = getActiveDate();
+
+  const fetchWeekNotes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const dateStr = today.toISOString().split('T')[0]; // "2026-04-15"
+      const res = await fetch(`${API_BASE}/notes/week/${USER_ID}?date=${dateStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWeekNotes(data);
+      } else {
+        setWeekNotes([]);
+      }
+    } catch (err) {
+      console.log('Błąd pobierania wpisów:', err);
+      setWeekNotes([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Odśwież wpisy za każdym razem gdy ekran zyskuje focus (np. po powrocie z AddEntry)
+  useFocusEffect(
+    useCallback(() => {
+      fetchWeekNotes();
+    }, [fetchWeekNotes])
+  );
+
+  // Sprawdź czy dzisiaj już jest wpis — jeśli tak, ukryj przycisk +
+  const hasTodayEntry = weekNotes.some(note => isSameDay(note.date_added, today));
+
+  // Daty wpisów do oznaczania w kalendarzu
+  const noteDates = weekNotes.map(n => new Date(n.date_added));
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Activity size={20} color={COLORS.primary} strokeWidth={3} />
-            <Text style={styles.logoText}>Digital Sanctuary</Text>
+            <Text style={styles.logoText}>MoodBook</Text>
           </View>
         </View>
 
-        <WeeklyCalendar currentDate={17} />
+        <WeeklyCalendar referenceDate={today} noteDates={noteDates} />
 
         <View style={styles.entriesSection}>
           <Text style={styles.sectionTitle}>Ostatnie Wpisy</Text>
 
-          {ENTRIES.map(entry => (
-            <EntryCard key={entry.id} entry={entry} />
-          ))}
+          {loading ? (
+            <Text style={styles.emptyText}>Ładowanie...</Text>
+          ) : weekNotes.length === 0 ? (
+            <Text style={styles.emptyText}>Brak wpisów w tym tygodniu. Dodaj swój pierwszy wpis!</Text>
+          ) : (
+            weekNotes.map(note => (
+              <EntryCard key={note.id} note={note} />
+            ))
+          )}
+
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('AddEntry')}
-      >
-        <Plus size={24} color={COLORS.surface} />
-      </TouchableOpacity>
+
+      {/* Przycisk + znika jeśli dzisiaj już dodano wpis */}
+      {!hasTodayEntry && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => navigation.navigate('AddEntry')}
+        >
+          <Plus size={24} color={COLORS.surface} />
+        </TouchableOpacity>
+      )}
 
       <TabBar />
     </SafeAreaView>
@@ -124,6 +135,14 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: SIZES.large,
   },
+  emptyText: {
+    ...FONTS.regular,
+    fontSize: SIZES.font,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: SIZES.extraLarge,
+    lineHeight: 24,
+  },
   fab: {
     position: 'absolute',
     bottom: SIZES.padding + 80,
@@ -139,5 +158,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 5,
-  }
+  },
 });

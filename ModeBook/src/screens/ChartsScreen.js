@@ -1,18 +1,65 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
-import { Activity, Moon, Droplets, Wind, Smile, Frown } from 'lucide-react-native';
+import { Activity, Moon, Droplets, Smile, Frown, Zap, Heart, Brain } from 'lucide-react-native';
 import TabBar from '../components/TabBar';
+import { getActiveDate, API_BASE, USER_ID } from '../constants/testConfig';
+
+const TrendBar = ({ label, value, color, icon }) => (
+  <View style={styles.trendRow}>
+    <View style={styles.trendIconWrapper}>{icon}</View>
+    <View style={styles.trendBarContainer}>
+      <Text style={styles.trendLabel}>{label}</Text>
+      <View style={styles.trendBarTrack}>
+        <View style={[styles.trendBarFill, { width: `${value}%`, backgroundColor: color }]} />
+      </View>
+    </View>
+    <Text style={[styles.trendValue, { color }]}>{value}%</Text>
+  </View>
+);
 
 export default function ChartsScreen({ navigation }) {
+  const [summary, setSummary] = useState(null);
+  const [weekNotes, setWeekNotes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const today = getActiveDate();
+
+  const fetchSummary = useCallback(async () => {
+    setLoading(true);
+    try {
+      const dateStr = today.toISOString().split('T')[0];
+      const res = await fetch(`${API_BASE}/ai/week-summary/${USER_ID}?date=${dateStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSummary(data.analysis);
+        setWeekNotes(Array(data.noteCount).fill(null));
+      }
+    } catch (err) {
+      console.log('Błąd pobierania podsumowania AI:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { fetchSummary(); }, [fetchSummary]));
+
+  // Oblicz wynik wellnessowy
+  const wellnessScore = summary
+    ? Math.max(0, Math.min(100, Math.round(
+        (summary.szczescie * 1.2 - summary.stres * 0.5 - summary.smutek * 0.3 - summary.zlosc * 0.4 + 50) / 2
+      )))
+    : null;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Activity size={20} color={COLORS.primary} strokeWidth={3} />
-            <Text style={styles.logoText}>Digital Sanctuary</Text>
+            <Text style={styles.logoText}>MoodBook</Text>
           </View>
         </View>
 
@@ -21,145 +68,66 @@ export default function ChartsScreen({ navigation }) {
           <Text style={styles.title}>Twoja Życiowa{'\n'}<Text style={styles.titleItalic}>Równowaga</Text></Text>
         </View>
 
-        <View style={styles.insightsSection}>
-          <Text style={styles.sectionTitle}>WNIOSKI I REKOMENDACJE AI</Text>
-
-          <View style={[styles.insightCard, { backgroundColor: '#E0F0E3' }]}>
-            <View style={styles.insightHeaderRow}>
-              <Moon size={16} color={COLORS.primary} />
-              <Text style={styles.insightTitle}>Lepszy Odpoczynek</Text>
-            </View>
-            <Text style={styles.insightText}>Spróbuj położyć się 15 minut wcześniej, aby poprawić jakość snu.</Text>
+        {loading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator color={COLORS.primary} />
+            <Text style={styles.loadingText}>Analizuję Twój tydzień z AI...</Text>
           </View>
-
-          <View style={[styles.insightCard, { backgroundColor: '#E6F0F6' }]}>
-            <View style={styles.insightHeaderRow}>
-              <Droplets size={16} color="#2D5A88" />
-              <Text style={[styles.insightTitle, { color: '#2D5A88' }]}>Więcej Wody</Text>
-            </View>
-            <Text style={styles.insightText}>Wypij szklankę wody przed następnym posiłkiem.</Text>
-          </View>
-
-          <View style={[styles.insightCard, { backgroundColor: '#E0EAE2' }]}>
-            <View style={styles.insightHeaderRow}>
-              <Wind size={16} color={COLORS.primary} />
-              <Text style={styles.insightTitle}>Chwila Uważności</Text>
-            </View>
-            <Text style={styles.insightText}>Znajdź 5 minut na głębokie oddychanie w południe.</Text>
-          </View>
-        </View>
-
-        <View style={styles.wellnessScore}>
-          <View>
-            <Text style={styles.wellnessLabel}>Ogólne samopoczucie</Text>
-            <Text style={styles.wellnessValue}>88%</Text>
-          </View>
-          <View style={styles.wellnessDial}>
-            <Activity size={24} color={COLORS.primary} />
-          </View>
-        </View>
-
-        <View style={styles.chartsContainer}>
-          <View style={styles.chartCard}>
-            <View style={styles.chartHeader}>
+        ) : summary ? (
+          <>
+            {/* Wynik ogólny */}
+            <View style={styles.wellnessScore}>
               <View>
-                <Text style={styles.chartTitle}>Wzorce snu</Text>
-                <Text style={styles.chartSubtitle}>Jakość i czas trwania w{'\n'}ostatnich 7 dniach</Text>
+                <Text style={styles.wellnessLabel}>Ogólne samopoczucie</Text>
+                <Text style={styles.wellnessValue}>{wellnessScore}%</Text>
+                <Text style={[styles.wellnessLabel, { marginTop: 2 }]}>
+                  Wpisy w tym tygodniu: {weekNotes.length}
+                </Text>
               </View>
-              <View style={styles.avgBadge}>
-                <Text style={styles.avgBadgeText}>Średnio</Text>
-                <Text style={styles.avgBadgeValue}>7.4h</Text>
+              <View style={[styles.wellnessDial, { borderColor: wellnessScore > 60 ? COLORS.primary : '#E05540' }]}>
+                <Text style={{ fontSize: 22 }}>{wellnessScore > 70 ? '😊' : wellnessScore > 40 ? '😐' : '😔'}</Text>
               </View>
             </View>
 
-            <View style={styles.barChartPlaceholder}>
-              <View style={[styles.bar, { height: 40 }]} />
-              <View style={[styles.bar, { height: 60 }]} />
-              <View style={[styles.bar, { height: 50 }]} />
-              <View style={[styles.bar, { height: 75, backgroundColor: COLORS.primary }]} />
-              <View style={[styles.bar, { height: 45 }]} />
-              <View style={[styles.bar, { height: 80 }]} />
-              <View style={[styles.bar, { height: 65 }]} />
+            {/* Trendy emocji */}
+            <View style={[styles.chartCard, { backgroundColor: '#A4E8B0', marginBottom: SIZES.medium }]}>
+              <Text style={styles.chartTitle}>Trendy nastroju</Text>
+              <Text style={styles.chartSubtitle}>Analiza emocjonalna tygodnia</Text>
+
+              <TrendBar label="RADOŚĆ"  value={summary.szczescie} color="#2E7D32" icon={<Smile  size={14} color="#2E7D32" />} />
+              <TrendBar label="SMUTEK"  value={summary.smutek}   color="#1565C0" icon={<Frown  size={14} color="#1565C0" />} />
+              <TrendBar label="STRES"   value={summary.stres}    color="#E65100" icon={<Zap    size={14} color="#E65100" />} />
+              <TrendBar label="ZŁOŚĆ"   value={summary.zlosc}    color="#B71C1C" icon={<Heart  size={14} color="#B71C1C" />} />
             </View>
 
-            <View style={styles.daysRow}>
-              {['Pon', 'Wto', 'Śro', 'Czw', 'Pią', 'Sob', 'Nie'].map(day => (
-                <Text key={day} style={styles.chartDayText}>{day}</Text>
-              ))}
+            {/* Nastrój + Rekomendacje AI */}
+            <View style={styles.insightsSection}>
+              <Text style={styles.sectionTitle}>WNIOSKI I REKOMENDACJE AI</Text>
+
+              <View style={[styles.insightCard, { backgroundColor: '#E0F0E3' }]}>
+                <View style={styles.insightHeaderRow}>
+                  <Brain size={16} color={COLORS.primary} />
+                  <Text style={styles.insightTitle}>Ocena nastroju</Text>
+                </View>
+                <Text style={styles.insightText}>{summary.nastroj}</Text>
+              </View>
+
+              <View style={[styles.insightCard, { backgroundColor: '#E6F0F6' }]}>
+                <View style={styles.insightHeaderRow}>
+                  <Activity size={16} color="#2D5A88" />
+                  <Text style={[styles.insightTitle, { color: '#2D5A88' }]}>Rekomendacje</Text>
+                </View>
+                <Text style={styles.insightText}>{summary.rekomendacje}</Text>
+              </View>
             </View>
+          </>
+        ) : (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>
+              Brak wpisów w tym tygodniu.{'\n'}Dodaj wpis, aby zobaczyć analizę AI!
+            </Text>
           </View>
-
-          <View style={[styles.chartCard, { backgroundColor: '#A4E8B0' }]}>
-            <Text style={styles.chartTitle}>Trendy nastroju</Text>
-            <Text style={styles.chartSubtitle}>Rezonans emocjonalny</Text>
-
-            <View style={styles.trendRow}>
-              <View style={styles.trendIconWrapper}>
-                <Smile size={16} color={COLORS.primary} />
-              </View>
-              <View style={styles.trendBarContainer}>
-                <Text style={styles.trendLabel}>RADOŚĆ</Text>
-                <View style={styles.trendBarTrack}>
-                  <View style={[styles.trendBarFill, { width: '65%' }]} />
-                </View>
-              </View>
-              <Text style={styles.trendValue}>65%</Text>
-            </View>
-
-            <View style={styles.trendRow}>
-              <View style={styles.trendIconWrapper}>
-                <Frown size={16} color={COLORS.primary} />
-              </View>
-              <View style={styles.trendBarContainer}>
-                <Text style={styles.trendLabel}>SMUTEK</Text>
-                <View style={styles.trendBarTrack}>
-                  <View style={[styles.trendBarFill, { width: '25%' }]} />
-                </View>
-              </View>
-              <Text style={styles.trendValue}>25%</Text>
-            </View>
-
-            <View style={styles.trendRow}>
-              <View style={styles.trendIconWrapper}>
-                <Frown size={16} color={COLORS.primary} />
-              </View>
-              <View style={styles.trendBarContainer}>
-                <Text style={styles.trendLabel}>ZŁOŚĆ</Text>
-                <View style={styles.trendBarTrack}>
-                  <View style={[styles.trendBarFill, { width: '10%' }]} />
-                </View>
-              </View>
-              <Text style={styles.trendValue}>10%</Text>
-            </View>
-            <View style={styles.trendRow}>
-              <View style={styles.trendIconWrapper}>
-                <Frown size={16} color={COLORS.primary} />
-              </View>
-              <View style={styles.trendBarContainer}>
-                <Text style={styles.trendLabel}>STRES</Text>
-                <View style={styles.trendBarTrack}>
-                  <View style={[styles.trendBarFill, { width: '65%' }]} />
-                </View>
-              </View>
-              <Text style={styles.trendValue}>65%</Text>
-            </View>
-          </View>
-
-          <View style={[styles.chartCard, { backgroundColor: '#CCF2F2' }]}>
-            <View style={styles.radialChartContainer}>
-              <View style={styles.radialDial}>
-                <Text style={styles.radialValue}>2.1</Text>
-                <Text style={styles.radialUnit}>LITRÓW</Text>
-              </View>
-            </View>
-            <Text style={styles.chartTitle}>Nawodnienie</Text>
-            <Text style={styles.chartSubtitle}>Osiągnąłeś 75% dziennego celu nawodnienia. Tak trzymaj.</Text>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Dodaj +250ml</Text>
-            </TouchableOpacity>
-          </View>
-
-        </View>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -169,256 +137,71 @@ export default function ChartsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: SIZES.padding,
-  },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, paddingHorizontal: SIZES.padding },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: SIZES.medium,
-    paddingBottom: SIZES.medium,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingTop: SIZES.medium, paddingBottom: SIZES.medium,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logoText: {
-    ...FONTS.bold,
-    fontSize: SIZES.medium,
-    color: COLORS.text,
-  },
-  titleSection: {
-    marginBottom: SIZES.large,
-  },
+  logoContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logoText: { ...FONTS.bold, fontSize: SIZES.medium, color: COLORS.text },
+  titleSection: { marginBottom: SIZES.large },
   subtitle: {
-    ...FONTS.medium,
-    fontSize: 10,
-    color: COLORS.textSecondary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    ...FONTS.medium, fontSize: 10, color: COLORS.textSecondary,
+    letterSpacing: 1, textTransform: 'uppercase',
   },
-  title: {
-    ...FONTS.bold,
-    fontSize: 32,
-    color: COLORS.text,
-    lineHeight: 40,
-    marginTop: 8,
+  title: { ...FONTS.bold, fontSize: 32, color: COLORS.text, lineHeight: 40, marginTop: 8 },
+  titleItalic: { fontStyle: 'italic', fontWeight: 'normal', color: COLORS.primary },
+
+  loadingBox: { alignItems: 'center', paddingVertical: 40, gap: 12 },
+  loadingText: { ...FONTS.regular, fontSize: SIZES.font, color: COLORS.textSecondary },
+
+  emptyBox: { alignItems: 'center', paddingVertical: 40 },
+  emptyText: {
+    ...FONTS.regular, fontSize: SIZES.font, color: COLORS.textSecondary,
+    textAlign: 'center', lineHeight: 24,
   },
-  titleItalic: {
-    fontStyle: 'italic',
-    fontWeight: 'normal',
-    color: COLORS.primary,
-  },
-  insightsSection: {
-    marginBottom: SIZES.medium,
-  },
-  sectionTitle: {
-    ...FONTS.bold,
-    fontSize: 10,
-    color: COLORS.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: SIZES.medium,
-  },
-  insightCard: {
-    padding: SIZES.medium,
-    borderRadius: SIZES.xl,
-    marginBottom: SIZES.small,
-  },
-  insightHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  insightTitle: {
-    ...FONTS.semiBold,
-    fontSize: SIZES.small,
-    color: COLORS.text,
-  },
-  insightText: {
-    ...FONTS.regular,
-    fontSize: SIZES.small,
-    color: COLORS.textSecondary,
-    lineHeight: 18,
-  },
+
   wellnessScore: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: SIZES.medium,
-    paddingHorizontal: SIZES.padding,
-    backgroundColor: '#E6F2E8',
-    borderRadius: SIZES.xl,
-    marginBottom: SIZES.extraLarge,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: SIZES.medium, paddingHorizontal: SIZES.padding,
+    backgroundColor: '#E6F2E8', borderRadius: SIZES.xl, marginBottom: SIZES.extraLarge,
   },
-  wellnessLabel: {
-    ...FONTS.regular,
-    fontSize: SIZES.small,
-    color: COLORS.textSecondary,
-  },
-  wellnessValue: {
-    ...FONTS.bold,
-    fontSize: 28,
-    color: COLORS.primary,
-  },
+  wellnessLabel: { ...FONTS.regular, fontSize: SIZES.small, color: COLORS.textSecondary },
+  wellnessValue: { ...FONTS.bold, fontSize: 28, color: COLORS.primary },
   wellnessDial: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#D1E8D5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.primary,
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3,
   },
-  chartsContainer: {
-    gap: SIZES.medium,
+
+  insightsSection: { marginBottom: SIZES.medium },
+  sectionTitle: {
+    ...FONTS.bold, fontSize: 10, color: COLORS.textSecondary,
+    letterSpacing: 1.5, marginBottom: SIZES.medium,
   },
-  chartCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: SIZES.xxl,
-    padding: SIZES.padding,
+  insightCard: { padding: SIZES.medium, borderRadius: SIZES.xl, marginBottom: SIZES.small },
+  insightHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  insightTitle: { ...FONTS.semiBold, fontSize: SIZES.small, color: COLORS.text },
+  insightText: {
+    ...FONTS.regular, fontSize: SIZES.small, color: COLORS.textSecondary, lineHeight: 18,
   },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SIZES.medium,
-  },
-  chartTitle: {
-    ...FONTS.bold,
-    fontSize: SIZES.large,
-    color: COLORS.text,
-    marginBottom: 4,
-  },
+
+  chartCard: { borderRadius: SIZES.xxl, padding: SIZES.padding },
+  chartTitle: { ...FONTS.bold, fontSize: SIZES.large, color: COLORS.text, marginBottom: 4 },
   chartSubtitle: {
-    ...FONTS.regular,
-    fontSize: SIZES.small,
-    color: COLORS.textSecondary,
+    ...FONTS.regular, fontSize: SIZES.small, color: COLORS.textSecondary, marginBottom: SIZES.medium,
   },
-  avgBadge: {
-    backgroundColor: '#D4E8FA',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: SIZES.xl,
-    alignItems: 'center',
-  },
-  avgBadgeText: {
-    ...FONTS.medium,
-    fontSize: 10,
-    color: '#2D5A88',
-  },
-  avgBadgeValue: {
-    ...FONTS.bold,
-    fontSize: SIZES.medium,
-    color: '#2D5A88',
-  },
-  barChartPlaceholder: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    height: 100,
-    marginTop: SIZES.large,
-    marginBottom: SIZES.small,
-  },
-  bar: {
-    width: 24,
-    backgroundColor: '#E0EAE2',
-    borderRadius: 12,
-  },
-  daysRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  chartDayText: {
-    ...FONTS.regular,
-    fontSize: 10,
-    color: COLORS.textSecondary,
-    width: 24,
-    textAlign: 'center',
-  },
-  trendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: SIZES.medium,
-    gap: SIZES.small,
-  },
+  trendRow: { flexDirection: 'row', alignItems: 'center', marginTop: SIZES.medium, gap: SIZES.small },
   trendIconWrapper: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center',
   },
-  trendBarContainer: {
-    flex: 1,
-  },
-  trendLabel: {
-    ...FONTS.semiBold,
-    fontSize: 8,
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
+  trendBarContainer: { flex: 1 },
+  trendLabel: { ...FONTS.semiBold, fontSize: 8, color: COLORS.primary, marginBottom: 4 },
   trendBarTrack: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 3,
+    height: 8, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 4, overflow: 'hidden',
   },
-  trendBarFill: {
-    height: 6,
-    backgroundColor: COLORS.surface,
-    borderRadius: 3,
-  },
-  trendValue: {
-    ...FONTS.bold,
-    fontSize: 10,
-    color: COLORS.primary,
-    width: 24,
-    textAlign: 'right',
-  },
-  radialChartContainer: {
-    alignItems: 'center',
-    marginBottom: SIZES.medium,
-  },
-  radialDial: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 10,
-    borderColor: '#2B5753',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radialValue: {
-    ...FONTS.bold,
-    fontSize: 24,
-    color: '#2B5753',
-  },
-  radialUnit: {
-    ...FONTS.medium,
-    fontSize: 10,
-    color: '#2B5753',
-    marginTop: 2,
-  },
-  actionButton: {
-    backgroundColor: '#2B5753',
-    borderRadius: SIZES.xl,
-    paddingVertical: SIZES.small,
-    paddingHorizontal: SIZES.large,
-    alignSelf: 'flex-start',
-    marginTop: SIZES.medium,
-  },
-  actionButtonText: {
-    ...FONTS.semiBold,
-    fontSize: SIZES.small,
-    color: COLORS.surface,
-  }
+  trendBarFill: { height: 8, borderRadius: 4 },
+  trendValue: { ...FONTS.bold, fontSize: 10, width: 28, textAlign: 'right' },
 });

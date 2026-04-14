@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import AddEntryScreen from '../screens/AddEntryScreen';
 import ChartsScreen from '../screens/ChartsScreen';
+import AiResultScreen from '../screens/AiResultScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +30,11 @@ export default function AppNavigation() {
         />
         <Stack.Screen name="Calendar" component={HomeScreen} />
         <Stack.Screen name="Charts" component={ChartsScreen} />
+        <Stack.Screen
+          name="AiResult"
+          component={AiResultScreen}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

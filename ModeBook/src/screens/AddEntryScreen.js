@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
-import { Activity, X, Smile, Frown, Utensils, Moon, Droplet } from 'lucide-react-native';
+import { getActiveDate, API_BASE, USER_ID } from '../constants/testConfig';
+import { Activity, X, Utensils, Moon, Droplet } from 'lucide-react-native';
 import TabBar from '../components/TabBar';
 
 
@@ -34,38 +35,60 @@ export default function AddEntryScreen({ navigation }) {
     }
 
     setIsSubmitting(true);
-    
-    const payload = {
-      painLevel,
-      painNotes,
-      nutrition,
-      sleepHours: parseFloat(sleepHours) || 0,
-      waterIntake: parseFloat(waterIntake) || 0,
-      notes
+
+    const fullContent = `Ból: ${painLevel}\nSzczegóły bólu: ${painNotes || 'Brak'}\n\nNotatki ogólne:\n${notes}`;
+    const activeDate = getActiveDate();
+
+    const noteData = {
+      userId: USER_ID,
+      content: fullContent,
+      ammount_sleep: parseFloat(sleepHours) || 0,
+      ammount_of_water: parseFloat(waterIntake) || 0,
+      nutrition_intake: nutrition,
+      date_added: activeDate.toISOString(),
     };
 
     try {
-      const response = await fetch('http://TEST_ADRES/api/entries', {
+      // 1. Zapisz wpis
+      const saveResponse = await fetch(`${API_BASE}/notes/create`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(noteData),
       });
 
-      if (response.ok) {
-        Alert.alert('Sukces', 'Zapisano pomyślnie na serwerze!');
-        navigation.goBack();
+      if (!saveResponse.ok) {
+        const errData = await saveResponse.json().catch(() => ({}));
+        Alert.alert('Błąd', `Nie udało się zapisać danych: ${errData.error || 'nieznany błąd'}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2. Nawiguj od razu do ekranu wyników (z flagą ładowania)
+      navigation.replace('AiResult', { isLoading: true, analysis: null });
+
+      // 3. Wywołaj analizę AI
+      const aiResponse = await fetch(`${API_BASE}/ai/analyze-note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteData }),
+      });
+
+      if (aiResponse.ok) {
+        const analysis = await aiResponse.json();
+        navigation.replace('AiResult', { isLoading: false, analysis });
       } else {
-        Alert.alert('Błąd', 'Nie udało się zapisać danych.');
+        navigation.replace('AiResult', {
+          isLoading: false,
+          analysis: {
+            nastroj: 'Wpis został zapisany pomyślnie.',
+            rekomendacje: 'Analiza AI chwilowo niedostępna.',
+            szczescie: 50, smutek: 0, stres: 0, zlosc: 0,
+          }
+        });
       }
     } catch (error) {
-       console.log('Brak dostępnego serwera (tryb deweloperski):', error);
-       Alert.alert(
-         'Sukces (Tryb Testowy)', 
-         'Udana symulacja wysyłki pod dres:\nhttp://TEST_ADRES/api/entries\n\nWysłane dane:\n' + JSON.stringify(payload, null, 2)
-       );
-       navigation.goBack();
+      console.log('Błąd:', error);
+      Alert.alert('Błąd połączenia', `Nie można połączyć z serwerem ${API_BASE}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +99,7 @@ export default function AddEntryScreen({ navigation }) {
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Activity size={20} color={COLORS.primary} strokeWidth={3} />
-          <Text style={styles.logoText}>Digital Sanctuary</Text>
+          <Text style={styles.logoText}>MoodBook</Text>
         </View>
         <TouchableOpacity
           style={styles.closeButton}
@@ -144,7 +167,7 @@ export default function AddEntryScreen({ navigation }) {
               <Moon size={20} color={COLORS.primary} />
             </View>
             <View style={styles.cardTitleRow}>
-              <TextInput 
+              <TextInput
                 style={[styles.cardValue, { padding: 0 }]}
                 value={sleepHours}
                 onChangeText={setSleepHours}
@@ -155,7 +178,7 @@ export default function AddEntryScreen({ navigation }) {
             </View>
           </View>
           <Text style={styles.cardSubtitleInfo}>Ilość snu</Text>
-          <View 
+          <View
             style={[styles.sliderTrack, { height: 30, backgroundColor: 'transparent', justifyContent: 'center' }]}
             onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
             onStartShouldSetResponder={() => true}
@@ -174,7 +197,7 @@ export default function AddEntryScreen({ navigation }) {
               <Droplet size={20} color={COLORS.primary} />
             </View>
             <View style={styles.cardTitleRow}>
-              <TextInput 
+              <TextInput
                 style={[styles.cardValue, { padding: 0 }]}
                 value={waterIntake}
                 onChangeText={setWaterIntake}
@@ -187,13 +210,13 @@ export default function AddEntryScreen({ navigation }) {
           <Text style={styles.cardSubtitleInfo}>Wypita woda</Text>
           <View style={styles.waterTrackerRow}>
             {[1, 2, 3, 4].map((segment) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={segment}
                 style={{ flex: 1, height: 30, justifyContent: 'center' }}
                 onPress={() => setWaterIntake((segment * 0.5).toString())}
               >
-                <View 
-                  style={(parseFloat(waterIntake) || 0) >= segment * 0.5 ? styles.waterSegmentActive : styles.waterSegmentInactive} 
+                <View
+                  style={(parseFloat(waterIntake) || 0) >= segment * 0.5 ? styles.waterSegmentActive : styles.waterSegmentInactive}
                 />
               </TouchableOpacity>
             ))}
@@ -216,7 +239,7 @@ export default function AddEntryScreen({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.primaryButton, isSubmitting && { opacity: 0.7 }]}
           onPress={handleSubmit}
           disabled={isSubmitting}

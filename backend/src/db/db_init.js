@@ -15,8 +15,13 @@ async function InitDb(){
             Content TEXT,
             Ammout_sleep NUMERIC(4,1),
             Ammout_of_water NUMERIC(4,1),
-            Nutrition_intake VARCHAR(255)
-        );`)
+            Nutrition_intake VARCHAR(255),
+            Date_added TIMESTAMP DEFAULT NOW()
+        );`
+    )
+
+    // Bezpieczne dodanie kolumny dla już istniejących baz danych
+    await pool.query(`ALTER TABLE Notes ADD COLUMN IF NOT EXISTS Date_added TIMESTAMP DEFAULT NOW();`)
 
     await pool.query(`
         CREATE TABLE IF NOT EXISTS DailyMood (

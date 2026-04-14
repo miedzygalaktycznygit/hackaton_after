@@ -2,36 +2,75 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 
-const days = ['Pon', 'Wto', 'Śro', 'Czw', 'Pią', 'Sob', 'Nie'];
-const dates = [15, 16, 17, 18, 19, 20, 21];
+const DAY_NAMES = ['Pon', 'Wto', 'Śro', 'Czw', 'Pią', 'Sob', 'Nie'];
+const MONTHS_PL = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
 
-const WeeklyCalendar = ({ currentDate = 17 }) => {
+// Oblicza tablicę dat (pon–nie) dla tygodnia zawierającego `referenceDate`
+function getWeekDates(referenceDate) {
+  const d = new Date(referenceDate);
+  const day = d.getDay(); // 0=niedziela
+  const diffToMon = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMon);
+  monday.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    return date;
+  });
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+}
+
+// noteDates: tablica dat (Date lub string ISO) wpisów z tego tygodnia
+const WeeklyCalendar = ({ referenceDate, noteDates = [] }) => {
+  const today = referenceDate ? new Date(referenceDate) : new Date();
+  const weekDates = getWeekDates(today);
+  const parsedNoteDates = noteDates.map(d => new Date(d));
+
+  const monday = weekDates[0];
+  const headerMonth = `${MONTHS_PL[monday.getMonth()]} ${monday.getFullYear()}`;
+
   return (
     <View style={styles.container}>
       <Text style={styles.headerTitle}>PODSUMOWANIE TYGODNIA</Text>
-      <Text style={styles.headerDate}>Kwiecień 2024</Text>
+      <Text style={styles.headerDate}>{headerMonth}</Text>
 
       <View style={styles.calendarCard}>
         <View style={styles.daysRow}>
-          {days.map((day, index) => (
-            <View key={index} style={styles.dayColumn}>
-              <Text style={styles.dayText}>{day}</Text>
-              <TouchableOpacity
-                style={[
-                  styles.dateCircle,
-                  dates[index] === currentDate && styles.activeDateCircle,
-                  dates[index] > currentDate && styles.futureDateCircle
-                ]}
-              >
-                <Text style={[
-                  styles.dateText,
-                  dates[index] > currentDate && styles.futureDateText
-                ]}>
-                  {dates[index]}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+          {weekDates.map((date, index) => {
+            const isToday = isSameDay(date, today);
+            const isFuture = date > today && !isSameDay(date, today);
+            const hasNote = parsedNoteDates.some(nd => isSameDay(nd, date));
+
+            return (
+              <View key={index} style={styles.dayColumn}>
+                <Text style={styles.dayText}>{DAY_NAMES[index]}</Text>
+                <View
+                  style={[
+                    styles.dateCircle,
+                    isToday && styles.activeDateCircle,
+                    isFuture && styles.futureDateCircle,
+                    hasNote && styles.noteDateCircle,
+                  ]}
+                >
+                  <Text style={[
+                    styles.dateText,
+                    isFuture && styles.futureDateText,
+                    hasNote && styles.noteDateText,
+                  ]}>
+                    {date.getDate()}
+                  </Text>
+                </View>
+                {hasNote && <View style={styles.noteDot} />}
+              </View>
+            );
+          })}
         </View>
       </View>
     </View>
@@ -92,6 +131,9 @@ const styles = StyleSheet.create({
   futureDateCircle: {
     backgroundColor: '#F3F9F4',
   },
+  noteDateCircle: {
+    backgroundColor: COLORS.primary,
+  },
   dateText: {
     ...FONTS.semiBold,
     fontSize: SIZES.font,
@@ -99,6 +141,16 @@ const styles = StyleSheet.create({
   },
   futureDateText: {
     color: '#A0BCA6',
+  },
+  noteDateText: {
+    color: COLORS.surface,
+  },
+  noteDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: COLORS.primary,
+    marginTop: 3,
   },
 });
 
