@@ -34,3 +34,5 @@ Thumbs.db
 # General
 log/
 *.log
+
+node_modules/
