@@ -1,7 +1,7 @@
-const {pool} = require("./db_config")
+const { pool } = require("./db_config")
 
 
-async function InitDb(){
+async function InitDb() {
     await pool.query(`CREATE TABLE IF NOT EXISTS "User" (
         Id SERIAL PRIMARY KEY,
         Name VARCHAR(100),
@@ -52,4 +52,4 @@ async function InitDb(){
     );`)
 }
 
-module.exports = {InitDb}
+module.exports = { InitDb }

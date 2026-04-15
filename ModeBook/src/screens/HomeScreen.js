@@ -82,10 +82,10 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        <WeeklyCalendar 
-          referenceDate={today} 
+        <WeeklyCalendar
+          referenceDate={today}
           selectedDate={selectedDate}
-          noteDates={noteDatesForCalendar} 
+          noteDates={noteDatesForCalendar}
           weekOffset={weekOffset}
           onWeekOffsetChange={(newOffset) => setWeekOffset(newOffset)}
           onDayPress={(note, date) => {

@@ -30,7 +30,7 @@ export default function AddEntryScreen({ navigation }) {
       .then(data => {
         if (Array.isArray(data)) setPendingAdvice(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleSleepTouch = (evt) => {

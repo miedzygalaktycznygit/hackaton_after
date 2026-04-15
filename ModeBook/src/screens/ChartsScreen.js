@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 import { Activity, Moon, Droplets, Smile, Frown, Zap, Heart, Brain } from 'lucide-react-native';
+import { LineChart } from 'react-native-chart-kit';
 import TabBar from '../components/TabBar';
 import { getActiveDate, API_BASE, USER_ID } from '../constants/testConfig';
 
@@ -19,6 +20,38 @@ const TrendBar = ({ label, value, color, icon }) => (
     <Text style={[styles.trendValue, { color }]}>{value}%</Text>
   </View>
 );
+
+const screenWidth = Dimensions.get("window").width;
+
+function calculateWellness(analysis) {
+  if (!analysis) return 50;
+  return Math.max(0, Math.min(100, Math.round(
+    (analysis.szczescie * 1.2 - analysis.stres * 0.5 - analysis.smutek * 0.3 - analysis.zlosc * 0.4 + 50) / 2
+  )));
+}
+
+const DAY_NAMES = ['Pon', 'Wto', 'Śro', 'Czw', 'Pią', 'Sob', 'Nie'];
+
+function getWeekDates(referenceDate) {
+  const d = new Date(referenceDate);
+  const day = d.getDay();
+  const diffToMon = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMon);
+  monday.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    return date;
+  });
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+}
 
 export default function ChartsScreen({ navigation }) {
   const [summary, setSummary] = useState(null);
@@ -65,12 +98,97 @@ export default function ChartsScreen({ navigation }) {
     ? (() => { try { return JSON.parse(latestNoteWithAdvice.analysis_json); } catch { return null; } })()
     : null;
 
-  // Oblicz wynik wellnessowy
-  const wellnessScore = summary
-    ? Math.max(0, Math.min(100, Math.round(
-        (summary.szczescie * 1.2 - summary.stres * 0.5 - summary.smutek * 0.3 - summary.zlosc * 0.4 + 50) / 2
-      )))
-    : null;
+  // Oblicz wynik wellnessowy z summary
+  const wellnessScore = summary ? calculateWellness(summary) : null;
+
+  // Oblicz dane do wykresu liniowego dla każdej wartości
+  const chartLabels = [];
+  const chartDatasetWellness = [];
+  const chartDatasetSzczescie = [];
+  const chartDatasetSmutek = [];
+  const chartDatasetStres = [];
+  const chartDatasetZlosc = [];
+
+  let lastWellness = 50, lastSzczescie = 50, lastSmutek = 10, lastStres = 20, lastZlosc = 5;
+
+  // Obliczanie danych dla poszczególnych dni tygodnia
+  if (weekNotes.length > 0) {
+    const weekDates = getWeekDates(today);
+
+    // Znajdź pierwszą wartość z przeszłości jeśli dostępna lub z tego tygodnia
+    const firstNoteWithAnalysis = weekNotes.slice().sort((a, b) => new Date(a.date_added) - new Date(b.date_added)).find(n => n.analysis_json);
+    if (firstNoteWithAnalysis) {
+      try {
+        const firstAnalysis = JSON.parse(firstNoteWithAnalysis.analysis_json);
+        lastWellness = calculateWellness(firstAnalysis);
+        lastSzczescie = firstAnalysis.szczescie || 50;
+        lastSmutek = firstAnalysis.smutek || 10;
+        lastStres = firstAnalysis.stres || 20;
+        lastZlosc = firstAnalysis.zlosc || 5;
+      } catch (e) { }
+    }
+
+    weekDates.forEach((date, i) => {
+      if (date > today) return; // pominij dni w przyszłości
+
+      chartLabels.push(DAY_NAMES[i]);
+
+      const note = weekNotes.find(n => isSameDay(new Date(n.date_added), date));
+      if (note && note.analysis_json) {
+        try {
+          const analysis = JSON.parse(note.analysis_json);
+          lastWellness = calculateWellness(analysis);
+          lastSzczescie = analysis.szczescie || 0;
+          lastSmutek = analysis.smutek || 0;
+          lastStres = analysis.stres || 0;
+          lastZlosc = analysis.zlosc || 0;
+        } catch (e) { }
+      }
+      chartDatasetWellness.push(lastWellness);
+      chartDatasetSzczescie.push(lastSzczescie);
+      chartDatasetSmutek.push(lastSmutek);
+      chartDatasetStres.push(lastStres);
+      chartDatasetZlosc.push(lastZlosc);
+    });
+  }
+
+  // Fallback dla chartKita kiedy nie ma danych wystarczających do narysowania linii
+  const displayLabels = chartLabels.length > 0 ? chartLabels : ['Pon'];
+  const dataWellness = chartDatasetWellness.length > 0 ? chartDatasetWellness : [50];
+  const dataSzczescie = chartDatasetSzczescie.length > 0 ? chartDatasetSzczescie : [50];
+  const dataSmutek = chartDatasetSmutek.length > 0 ? chartDatasetSmutek : [10];
+  const dataStres = chartDatasetStres.length > 0 ? chartDatasetStres : [20];
+  const dataZlosc = chartDatasetZlosc.length > 0 ? chartDatasetZlosc : [5];
+
+  const EmotionLineChart = ({ title, subtitle, data, color }) => (
+    <View style={styles.lineChartCard}>
+      <Text style={[styles.chartTitle, { fontSize: SIZES.medium }]}>{title}</Text>
+      {subtitle && <Text style={styles.chartSubtitle}>{subtitle}</Text>}
+      <LineChart
+        data={{ labels: displayLabels, datasets: [{ data }] }}
+        width={screenWidth - SIZES.padding * 2 - SIZES.padding}
+        height={180}
+        withDots={true}
+        withInnerLines={false}
+        withOuterLines={false}
+        yAxisSuffix="%"
+        fromZero={true}
+        chartConfig={{
+          backgroundColor: COLORS.surface,
+          backgroundGradientFrom: COLORS.surface,
+          backgroundGradientTo: COLORS.surface,
+          decimalPlaces: 0,
+          color: (opacity = 1) => color,
+          labelColor: (opacity = 1) => COLORS.textSecondary,
+          style: { borderRadius: 16 },
+          propsForDots: { r: "3", strokeWidth: "2", stroke: color },
+          propsForLabels: { fontSize: 12, fontWeight: 'bold' }
+        }}
+        bezier
+        style={{ marginVertical: 8, borderRadius: 16, alignSelf: 'center', paddingBottom: 10 }}
+      />
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -108,50 +226,33 @@ export default function ChartsScreen({ navigation }) {
               </View>
             </View>
 
-            {/* Trendy emocji */}
+            {/* Trendy emocji przeniesione na górę */}
             <View style={[styles.chartCard, { backgroundColor: '#A4E8B0', marginBottom: SIZES.medium }]}>
               <Text style={styles.chartTitle}>Trendy nastroju</Text>
               <Text style={styles.chartSubtitle}>Analiza emocjonalna tygodnia</Text>
 
-              <TrendBar label="RADOŚĆ"  value={summary.szczescie} color="#2E7D32" icon={<Smile  size={14} color="#2E7D32" />} />
-              <TrendBar label="SMUTEK"  value={summary.smutek}   color="#1565C0" icon={<Frown  size={14} color="#1565C0" />} />
-              <TrendBar label="STRES"   value={summary.stres}    color="#E65100" icon={<Zap    size={14} color="#E65100" />} />
-              <TrendBar label="ZŁOŚĆ"   value={summary.zlosc}    color="#B71C1C" icon={<Heart  size={14} color="#B71C1C" />} />
+              <TrendBar label="RADOŚĆ" value={summary.szczescie} color="#2E7D32" icon={<Smile size={14} color="#2E7D32" />} />
+              <TrendBar label="SMUTEK" value={summary.smutek} color="#1565C0" icon={<Frown size={14} color="#1565C0" />} />
+              <TrendBar label="STRES" value={summary.stres} color="#E65100" icon={<Zap size={14} color="#E65100" />} />
+              <TrendBar label="ZŁOŚĆ" value={summary.zlosc} color="#B71C1C" icon={<Heart size={14} color="#B71C1C" />} />
             </View>
 
-            {/* Nastrój + Rekomendacje z bazy (bez re-generowania AI) */}
-            <View style={styles.insightsSection}>
-              <Text style={styles.sectionTitle}>WNIOSKI I REKOMENDACJE AI</Text>
 
-              <View style={[styles.insightCard, { backgroundColor: '#E0F0E3' }]}>
-                <View style={styles.insightHeaderRow}>
-                  <Brain size={16} color={COLORS.primary} />
-                  <Text style={styles.insightTitle}>Ocena nastroju (ostatni wpis)</Text>
-                </View>
-                <Text style={styles.insightText}>
-                  {latestAnalysis ? latestAnalysis.nastroj : summary.nastroj}
-                </Text>
-              </View>
 
-              {/* Porady z ostatniego wpisu tygodnia */}
-              {latestNoteWithAdvice && !latestNoteWithAdvice.analysis_json ? null :
-                [1, 2, 3].map(i => {
-                  const porada = latestAnalysis?.[`porada${i}`];
-                  if (!porada) return null;
-                  return (
-                    <View key={i} style={[styles.insightCard, { backgroundColor: '#E6F0F6' }]}>
-                      <View style={styles.insightHeaderRow}>
-                        <Activity size={16} color="#2D5A88" />
-                        <Text style={[styles.insightTitle, { color: '#2D5A88' }]}>
-                          {porada.category || `Porada ${i}`}
-                        </Text>
-                      </View>
-                      <Text style={styles.insightText}>{porada.text}</Text>
-                    </View>
-                  );
-                })
-              }
-            </View>
+            {/* Wykresy Liniowe przeniesione na dół */}
+            <Text style={[styles.sectionTitle, { marginTop: SIZES.large }]}>SZCZEGÓŁOWY PRZEBIEG TYGODNIA</Text>
+
+            <EmotionLineChart
+              title="Przebieg samopoczucia (Ogółem)"
+              subtitle="Zmiany Twojego dobrostanu w tym tygodniu"
+              data={dataWellness}
+              color={COLORS.primary}
+            />
+
+            <EmotionLineChart title="Radość" data={dataSzczescie} color="#2E7D32" />
+            <EmotionLineChart title="Smutek" data={dataSmutek} color="#1565C0" />
+            <EmotionLineChart title="Stres" data={dataStres} color="#E65100" />
+            <EmotionLineChart title="Złość" data={dataZlosc} color="#B71C1C" />
           </>
         ) : (
           <View style={styles.emptyBox}>
@@ -205,6 +306,13 @@ const styles = StyleSheet.create({
     width: 60, height: 60, borderRadius: 30,
     backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center',
     borderWidth: 3,
+  },
+
+  lineChartCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.xxl,
+    padding: SIZES.padding,
+    marginBottom: SIZES.extraLarge,
   },
 
   insightsSection: { marginBottom: SIZES.medium },
