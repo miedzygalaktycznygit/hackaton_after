@@ -18,15 +18,20 @@ function isSameDay(a, b) {
 }
 
 export default function HomeScreen({ navigation }) {
-  const [weekNotes, setWeekNotes] = useState([]);
-  const [loading, setLoading] = useState(false);
-
   const today = getActiveDate();
 
-  const fetchWeekNotes = useCallback(async () => {
+  const [weekNotes, setWeekNotes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedNote, setSelectedNote] = useState(null);
+
+  const fetchWeekNotes = useCallback(async (offset = 0) => {
     setLoading(true);
     try {
-      const dateStr = today.toISOString().split('T')[0]; // "2026-04-15"
+      const baseDate = new Date(today);
+      baseDate.setDate(today.getDate() + offset * 7);
+      const dateStr = baseDate.toISOString().split('T')[0];
       const res = await fetch(`${API_BASE}/notes/week/${USER_ID}?date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
@@ -42,18 +47,30 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
-  // Odśwież wpisy za każdym razem gdy ekran zyskuje focus (np. po powrocie z AddEntry)
   useFocusEffect(
     useCallback(() => {
-      fetchWeekNotes();
-    }, [fetchWeekNotes])
+      fetchWeekNotes(weekOffset);
+    }, [fetchWeekNotes, weekOffset])
   );
 
-  // Sprawdź czy dzisiaj już jest wpis — jeśli tak, ukryj przycisk +
-  const hasTodayEntry = weekNotes.some(note => isSameDay(note.date_added, today));
+  // Aktualizuje wybrany wpis kiedy zmieniają się wpisy w tygodniu lub wybrana data
+  React.useEffect(() => {
+    const noteForSelectedDay = weekNotes.find(n => isSameDay(n.date_added, selectedDate));
+    setSelectedNote(noteForSelectedDay || null);
+  }, [weekNotes, selectedDate]);
 
-  // Daty wpisów do oznaczania w kalendarzu
-  const noteDates = weekNotes.map(n => new Date(n.date_added));
+  // Sprawdź czy dzisiaj już jest wpis (przycisk dodawania widoczny tylko jeśli jesteśmy w bieżącym tygodniu i na dzisiaj brak wpisu)
+  const hasTodayEntry = weekOffset === 0 && weekNotes.some(note => isSameDay(note.date_added, today));
+
+  const noteDatesForCalendar = weekNotes.map(n => ({ date: n.date_added, note: n }));
+
+  const formatSelectedDate = (date) => {
+    const d = new Date(date);
+    if (isSameDay(d, today)) return 'Dzisiaj';
+    const DAYS = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const MONTHS = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+    return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -65,19 +82,33 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        <WeeklyCalendar referenceDate={today} noteDates={noteDates} />
+        <WeeklyCalendar 
+          referenceDate={today} 
+          selectedDate={selectedDate}
+          noteDates={noteDatesForCalendar} 
+          weekOffset={weekOffset}
+          onWeekOffsetChange={(newOffset) => setWeekOffset(newOffset)}
+          onDayPress={(note, date) => {
+            setSelectedDate(date);
+          }}
+        />
 
         <View style={styles.entriesSection}>
-          <Text style={styles.sectionTitle}>Ostatnie Wpisy</Text>
+          <Text style={styles.sectionTitle}>Wpis z dnia: {formatSelectedDate(selectedDate)}</Text>
 
           {loading ? (
-            <Text style={styles.emptyText}>Ładowanie...</Text>
-          ) : weekNotes.length === 0 ? (
-            <Text style={styles.emptyText}>Brak wpisów w tym tygodniu. Dodaj swój pierwszy wpis!</Text>
+            <Text style={styles.emptyText}>Ładowanie danych...</Text>
+          ) : selectedNote ? (
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => navigation.navigate('EntryDetail', { note: selectedNote })}
+            >
+              <EntryCard note={selectedNote} />
+            </TouchableOpacity>
           ) : (
-            weekNotes.map(note => (
-              <EntryCard key={note.id} note={note} />
-            ))
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>Brak wpisu w tym dniu.</Text>
+            </View>
           )}
 
           <View style={{ height: 100 }} />
@@ -140,8 +171,16 @@ const styles = StyleSheet.create({
     fontSize: SIZES.font,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: SIZES.extraLarge,
     lineHeight: 24,
+  },
+  emptyCard: {
+    padding: SIZES.extraLarge,
+    backgroundColor: '#F7FBF8',
+    borderRadius: SIZES.large,
+    borderWidth: 1,
+    borderColor: '#E6F2E8',
+    borderStyle: 'dashed',
+    marginTop: SIZES.medium,
   },
   fab: {
     position: 'absolute',

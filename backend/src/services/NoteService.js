@@ -63,4 +63,30 @@ async function returnNotes(userId) {
 }
 
 
-module.exports = {addNote, returnNotes, returnNotesForWeek}
+// Zapisz wynik analizy AI do wpisu (raz, po generacji)
+async function updateNoteAnalysis(noteId, analysisObj) {
+    try {
+        await pool.query(
+            `UPDATE Notes SET Analysis_json = $1 WHERE Id = $2`,
+            [JSON.stringify(analysisObj), noteId]
+        );
+    } catch (err) {
+        console.error('updateNoteAnalysis error:', err);
+    }
+}
+
+// Wszystkie wpisy użytkownika z paginacją
+async function returnAllNotes(userId, limit = 15, offset = 0) {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM Notes WHERE UserId = $1 ORDER BY Date_added DESC LIMIT $2 OFFSET $3`,
+            [userId, limit, offset]
+        );
+        return result.rows;
+    } catch (err) {
+        console.error(err);
+        throw new Error('Database error');
+    }
+}
+
+module.exports = {addNote, returnNotes, returnNotesForWeek, updateNoteAnalysis, returnAllNotes}

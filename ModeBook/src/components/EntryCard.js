@@ -72,20 +72,26 @@ const EntryCard = ({ note }) => {
           </View>
         )}
         {note.nutrition_intake ? (
-          <View style={styles.metricRow}>
+          <View style={[styles.metricRow, { flex: 1, minWidth: 0 }]}>
             <Utensils size={14} color="#7A5C2E" />
-            <Text style={styles.metricText} numberOfLines={1}>{note.nutrition_intake}</Text>
+            <Text style={[styles.metricText, { flex: 1 }]} numberOfLines={1} ellipsizeMode="tail">
+              {note.nutrition_intake}
+            </Text>
           </View>
         ) : null}
       </View>
 
       {generalNotes ? (
-        <Text style={styles.description} numberOfLines={3}>{generalNotes}</Text>
+        <Text style={styles.description} numberOfLines={2} ellipsizeMode="tail">
+          {generalNotes}
+        </Text>
       ) : null}
 
       {hasPain && painNotes && painNotes !== 'Brak' ? (
         <View style={styles.painNotesBox}>
-          <Text style={styles.painNotesText}>🩹 {painNotes}</Text>
+          <Text style={styles.painNotesText} numberOfLines={2} ellipsizeMode="tail">
+            🩹 {painNotes}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -168,6 +174,8 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 20,
     marginTop: SIZES.small,
+    flexShrink: 1,
+    overflow: 'hidden',
   },
   painNotesBox: {
     backgroundColor: '#FDF0EE',
@@ -179,6 +187,8 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     fontSize: SIZES.small,
     color: '#8B2010',
+    flexShrink: 1,
+    overflow: 'hidden',
   },
 });
 

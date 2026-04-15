@@ -2,34 +2,34 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES } from '../constants/theme';
-import { Home, Calendar, BarChart2, Settings } from 'lucide-react-native';
+import { Home, BarChart2, BookOpen } from 'lucide-react-native';
 
 const TabBar = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
+  const tabs = [
+    { name: 'Home', icon: Home, routes: ['Home', 'Calendar'] },
+    { name: 'History', icon: BookOpen, routes: ['History'] },
+    { name: 'Charts', icon: BarChart2, routes: ['Charts'] },
+  ];
+
   return (
     <View style={styles.tabBarContainer}>
       <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabItem, (route.name === 'Home' || route.name === 'Calendar') && styles.activeTabBg]}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Calendar
-            size={24}
-            color={(route.name === 'Home' || route.name === 'Calendar') ? COLORS.primary : COLORS.textSecondary}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabItem, route.name === 'Charts' && styles.activeTabBg]}
-          onPress={() => navigation.navigate('Charts')}
-        >
-          <BarChart2
-            size={24}
-            color={route.name === 'Charts' ? COLORS.primary : COLORS.textSecondary}
-          />
-        </TouchableOpacity>
+        {tabs.map(tab => {
+          const isActive = tab.routes.includes(route.name);
+          const Icon = tab.icon;
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              style={[styles.tabItem, isActive && styles.activeTabBg]}
+              onPress={() => navigation.navigate(tab.name)}
+            >
+              <Icon size={24} color={isActive ? COLORS.primary : COLORS.textSecondary} />
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   },
   activeTabBg: {
     backgroundColor: COLORS.activeTab,
-  }
+  },
 });
 
 export default TabBar;

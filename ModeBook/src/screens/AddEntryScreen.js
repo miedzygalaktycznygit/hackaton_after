@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 import { getActiveDate, API_BASE, USER_ID } from '../constants/testConfig';
-import { Activity, X, Utensils, Moon, Droplet } from 'lucide-react-native';
+import { Activity, X, Utensils, Moon, Droplet, CheckCircle, Circle } from 'lucide-react-native';
 import TabBar from '../components/TabBar';
 
 
@@ -17,6 +17,21 @@ export default function AddEntryScreen({ navigation }) {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sliderWidth, setSliderWidth] = useState(0);
+
+  // Poprzednie porady AI oczekujące na ocenę
+  const [pendingAdvice, setPendingAdvice] = useState([]);
+  // { adviceId, wasFollowed: true/false/null } — stan zaznaczenia
+  const [adviceFeedback, setAdviceFeedback] = useState({});
+
+  useEffect(() => {
+    const dateStr = getActiveDate().toISOString().split('T')[0];
+    fetch(`${API_BASE}/ai/pending-advice/${USER_ID}?date=${dateStr}`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setPendingAdvice(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSleepTouch = (evt) => {
     if (sliderWidth > 0) {
@@ -38,6 +53,7 @@ export default function AddEntryScreen({ navigation }) {
 
     const fullContent = `Ból: ${painLevel}\nSzczegóły bólu: ${painNotes || 'Brak'}\n\nNotatki ogólne:\n${notes}`;
     const activeDate = getActiveDate();
+    const hasPainNow = painLevel === 'Yes, it hurt';
 
     const noteData = {
       userId: USER_ID,
@@ -49,7 +65,43 @@ export default function AddEntryScreen({ navigation }) {
     };
 
     try {
-      // 1. Zapisz wpis
+      // 1. Wyznacz skuteczność poprzednich porad na podstawie bieżącego wpisu
+      //    każda kategoria ma swoją logikę oceny
+      const getIssuePersists = (category) => {
+        const cat = (category || '').toLowerCase();
+        // Ból: problem się utrzymuje jeśli dziś też bóli
+        if (cat === 'ból' || cat === 'pain' || cat === 'bol') {
+          return hasPainNow;
+        }
+        // Nawodnienie: rada o piciu wody jest nieskuteczna jeśli woda nadal niska
+        if (cat === 'nawodnienie' || cat === 'woda') {
+          return parseFloat(waterIntake) < 1.5;
+        }
+        // Sen: rada o śnie jest nieskuteczna jeśli wciąż śpi mało
+        if (cat === 'sen' || cat === 'sleep') {
+          return parseFloat(sleepHours) < 6;
+        }
+        // Odżywianie: nieskuteczna jeśli pole jedzenia nadal puste
+        if (cat === 'odżywianie' || cat === 'jedzenie') {
+          return !nutrition || nutrition.trim().length < 3;
+        }
+        // Dla kategorii których nie możemy ocenić z formularza — null (nieznana skuteczność)
+        return null;
+      };
+
+      const feedbackPromises = pendingAdvice.map(adv => {
+        const fb = adviceFeedback[adv.id];
+        if (fb === undefined || fb === null) return null;
+        const issuePersists = getIssuePersists(adv.category);
+        return fetch(`${API_BASE}/ai/advice-feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adviceId: adv.id, wasFollowed: fb, issuePersists }),
+        });
+      }).filter(Boolean);
+      await Promise.all(feedbackPromises);
+
+      // 2. Zapisz wpis (pobierz noteId)
       const saveResponse = await fetch(`${API_BASE}/notes/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,26 +114,30 @@ export default function AddEntryScreen({ navigation }) {
         setIsSubmitting(false);
         return;
       }
+      const saveData = await saveResponse.json();
+      const noteId = saveData.noteId;
 
-      // 2. Nawiguj od razu do ekranu wyników (z flagą ładowania)
+      // 3. Nawiguj natychmiast z flagą ładowania
       navigation.replace('AiResult', { isLoading: true, analysis: null });
 
-      // 3. Wywołaj analizę AI
+      // 4. Wywołaj analizę AI — przekazujemy noteId żeby backend zapisał porady
       const aiResponse = await fetch(`${API_BASE}/ai/analyze-note`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ noteData }),
+        body: JSON.stringify({ noteData, noteId, userId: USER_ID }),
       });
 
       if (aiResponse.ok) {
-        const analysis = await aiResponse.json();
-        navigation.replace('AiResult', { isLoading: false, analysis });
+        const result = await aiResponse.json();
+        navigation.replace('AiResult', { isLoading: false, analysis: result.analysis });
       } else {
         navigation.replace('AiResult', {
           isLoading: false,
           analysis: {
             nastroj: 'Wpis został zapisany pomyślnie.',
-            rekomendacje: 'Analiza AI chwilowo niedostępna.',
+            porada1: { text: 'Analiza AI chwilowo niedostępna.', category: 'ogólne' },
+            porada2: { text: 'Spróbuj później.', category: 'ogólne' },
+            porada3: { text: 'Dodaj kolejny wpis jutro.', category: 'ogólne' },
             szczescie: 50, smutek: 0, stres: 0, zlosc: 0,
           }
         });
@@ -114,6 +170,41 @@ export default function AddEntryScreen({ navigation }) {
           <Text style={styles.subtitle}>CODZIENNY MELDUNEK</Text>
           <Text style={styles.title}>Jak się dzisiaj{'\n'}czujesz?</Text>
         </View>
+
+        {/* Poprzednie porady AI - jeśli są */}
+        {pendingAdvice.length > 0 && (
+          <View style={styles.pendingAdviceSection}>
+            <Text style={styles.sectionTitleSecondary}>Porady od AI z poprzedniego dnia</Text>
+            <Text style={styles.painDescription}>Zaznacz, które z porad udało Ci się zastosować:</Text>
+            {pendingAdvice.map(adv => {
+              const fb = adviceFeedback[adv.id];
+              return (
+                <View key={adv.id} style={styles.adviceRow}>
+                  <View style={styles.adviceBadge}>
+                    <Text style={styles.adviceBadgeText}>{adv.category}</Text>
+                  </View>
+                  <Text style={styles.adviceText} numberOfLines={3}>{adv.advicetext}</Text>
+                  <View style={styles.adviceButtons}>
+                    <TouchableOpacity
+                      style={[styles.adviceBtn, fb === true && styles.adviceBtnYes]}
+                      onPress={() => setAdviceFeedback(prev => ({ ...prev, [adv.id]: true }))}
+                    >
+                      <CheckCircle size={16} color={fb === true ? COLORS.surface : COLORS.primary} />
+                      <Text style={[styles.adviceBtnText, fb === true && { color: COLORS.surface }]}>Tak</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.adviceBtn, fb === false && styles.adviceBtnNo]}
+                      onPress={() => setAdviceFeedback(prev => ({ ...prev, [adv.id]: false }))}
+                    >
+                      <Circle size={16} color={fb === false ? COLORS.surface : COLORS.error} />
+                      <Text style={[styles.adviceBtnText, fb === false && { color: COLORS.surface }]}>Nie</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
 
         <View style={styles.painSection}>
@@ -517,5 +608,68 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#A4D4B1',
     letterSpacing: 1,
-  }
+  },
+  pendingAdviceSection: {
+    backgroundColor: '#FFF8E1',
+    borderRadius: SIZES.xxl,
+    padding: SIZES.padding,
+    marginBottom: SIZES.extraLarge,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F9A825',
+  },
+  adviceRow: {
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.xl,
+    padding: SIZES.medium,
+    marginBottom: SIZES.small,
+  },
+  adviceBadge: {
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: SIZES.small,
+    paddingVertical: 2,
+    borderRadius: SIZES.small,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  adviceBadgeText: {
+    ...FONTS.semiBold,
+    fontSize: 10,
+    color: '#E65100',
+    textTransform: 'uppercase',
+  },
+  adviceText: {
+    ...FONTS.regular,
+    fontSize: SIZES.font,
+    color: COLORS.text,
+    lineHeight: 20,
+    marginBottom: SIZES.small,
+  },
+  adviceButtons: {
+    flexDirection: 'row',
+    gap: SIZES.small,
+  },
+  adviceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: SIZES.medium,
+    paddingVertical: 6,
+    borderRadius: SIZES.xl,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: COLORS.surface,
+  },
+  adviceBtnYes: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  adviceBtnNo: {
+    backgroundColor: COLORS.error,
+    borderColor: COLORS.error,
+  },
+  adviceBtnText: {
+    ...FONTS.medium,
+    fontSize: SIZES.small,
+    color: COLORS.text,
+  },
 });

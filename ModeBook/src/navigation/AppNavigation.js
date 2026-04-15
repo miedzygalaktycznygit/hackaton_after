@@ -6,6 +6,8 @@ import HomeScreen from '../screens/HomeScreen';
 import AddEntryScreen from '../screens/AddEntryScreen';
 import ChartsScreen from '../screens/ChartsScreen';
 import AiResultScreen from '../screens/AiResultScreen';
+import EntryDetailScreen from '../screens/EntryDetailScreen';
+import EntriesHistoryScreen from '../screens/EntriesHistoryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,9 +32,15 @@ export default function AppNavigation() {
         />
         <Stack.Screen name="Calendar" component={HomeScreen} />
         <Stack.Screen name="Charts" component={ChartsScreen} />
+        <Stack.Screen name="History" component={EntriesHistoryScreen} />
         <Stack.Screen
           name="AiResult"
           component={AiResultScreen}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="EntryDetail"
+          component={EntryDetailScreen}
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
       </Stack.Navigator>

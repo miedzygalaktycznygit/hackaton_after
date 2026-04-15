@@ -82,13 +82,38 @@ export default function AiResultScreen({ navigation, route }) {
           <EmotionBar label="Złość" value={analysis.zlosc} color="#B71C1C" icon={<Heart size={14} color="#B71C1C" style={{ marginRight: 4 }} />} />
         </View>
 
-        <View style={styles.recommendCard}>
-          <View style={styles.moodHeader}>
-            <CheckCircle size={18} color={COLORS.primary} />
-            <Text style={styles.moodTitle}>Rekomendacje</Text>
-          </View>
-          <Text style={styles.moodText}>{analysis.rekomendacje}</Text>
-        </View>
+        {/* Porady AI — 1 do 3 w zależności od potrzeb */}
+        {(() => {
+          const porady = [analysis.porada1, analysis.porada2, analysis.porada3].filter(Boolean);
+          return (
+            <View style={styles.adviceSection}>
+              <Text style={styles.adviceSectionTitle}>
+                {porady.length === 1 ? 'PORADA NA JUTRO' :
+                 porady.length === 2 ? '2 PORADY NA JUTRO' : '3 PORADY NA JUTRO'}
+              </Text>
+
+              {porady.length === 1 && (
+                <View style={styles.allGoodBadge}>
+                  <Text style={styles.allGoodText}>
+                    ✅ Większość aspektów Twojego zdrowia wygląda dobrze! Zwróć uwagę tylko na poniższe.
+                  </Text>
+                </View>
+              )}
+
+              {porady.map((porada, i) => (
+                <View key={i} style={styles.adviceCard}>
+                  <View style={styles.adviceHeader}>
+                    <Text style={styles.adviceNumber}>{i + 1}</Text>
+                    <View style={styles.adviceCategoryBadge}>
+                      <Text style={styles.adviceCategoryText}>{porada.category || 'ogólne'}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.adviceCardText}>{porada.text}</Text>
+                </View>
+              ))}
+            </View>
+          );
+        })()}
 
         <TouchableOpacity
           style={styles.primaryButton}
@@ -180,4 +205,48 @@ const styles = StyleSheet.create({
     paddingVertical: SIZES.medium + 4, alignItems: 'center',
   },
   primaryButtonText: { ...FONTS.semiBold, fontSize: SIZES.font, color: COLORS.surface },
+
+  adviceSection: { marginBottom: SIZES.extraLarge },
+  adviceSectionTitle: {
+    ...FONTS.bold, fontSize: 10, color: COLORS.textSecondary,
+    letterSpacing: 1.5, marginBottom: SIZES.medium,
+  },
+  adviceCard: {
+    backgroundColor: COLORS.surface, borderRadius: SIZES.xxl,
+    padding: SIZES.padding, marginBottom: SIZES.small,
+    borderLeftWidth: 4, borderLeftColor: COLORS.primary,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  adviceHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: SIZES.small,
+  },
+  adviceNumber: {
+    ...FONTS.bold, fontSize: SIZES.medium, color: COLORS.primary,
+    width: 24, textAlign: 'center',
+  },
+  adviceCategoryBadge: {
+    backgroundColor: '#E8F5E9', paddingHorizontal: SIZES.small,
+    paddingVertical: 2, borderRadius: SIZES.small,
+  },
+  adviceCategoryText: {
+    ...FONTS.semiBold, fontSize: 10, color: COLORS.primary, textTransform: 'uppercase',
+  },
+  adviceCardText: {
+    ...FONTS.regular, fontSize: SIZES.font, color: COLORS.text, lineHeight: 22,
+  },
+  allGoodBadge: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: SIZES.xl,
+    padding: SIZES.medium,
+    marginBottom: SIZES.medium,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+  },
+  allGoodText: {
+    ...FONTS.regular,
+    fontSize: SIZES.font,
+    color: COLORS.primary,
+    lineHeight: 20,
+  },
 });

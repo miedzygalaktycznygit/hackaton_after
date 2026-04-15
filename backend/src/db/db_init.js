@@ -20,8 +20,9 @@ async function InitDb(){
         );`
     )
 
-    // Bezpieczne dodanie kolumny dla już istniejących baz danych
+    // Bezpieczne dodanie kolumn dla już istniejących baz danych
     await pool.query(`ALTER TABLE Notes ADD COLUMN IF NOT EXISTS Date_added TIMESTAMP DEFAULT NOW();`)
+    await pool.query(`ALTER TABLE Notes ADD COLUMN IF NOT EXISTS Analysis_json TEXT;`)
 
     await pool.query(`
         CREATE TABLE IF NOT EXISTS DailyMood (
@@ -37,6 +38,17 @@ async function InitDb(){
         Notes_Id INTEGER REFERENCES Notes(Id) ON DELETE CASCADE,
         Summary TEXT,
         DailyMood_Id INTEGER REFERENCES DailyMood(Id) ON DELETE SET NULL
+    );`)
+
+    await pool.query(`CREATE TABLE IF NOT EXISTS AiAdvice (
+        Id SERIAL PRIMARY KEY,
+        UserId INTEGER REFERENCES "User"(Id) ON DELETE CASCADE,
+        NoteId INTEGER REFERENCES Notes(Id) ON DELETE CASCADE,
+        AdviceText TEXT NOT NULL,
+        Category VARCHAR(100),
+        WasFollowed BOOLEAN DEFAULT NULL,
+        WasEffective BOOLEAN DEFAULT NULL,
+        CreatedAt TIMESTAMP DEFAULT NOW()
     );`)
 }
 

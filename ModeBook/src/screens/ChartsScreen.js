@@ -23,6 +23,7 @@ const TrendBar = ({ label, value, color, icon }) => (
 export default function ChartsScreen({ navigation }) {
   const [summary, setSummary] = useState(null);
   const [weekNotes, setWeekNotes] = useState([]);
+  const [weekAdvices, setWeekAdvices] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const today = getActiveDate();
@@ -31,20 +32,38 @@ export default function ChartsScreen({ navigation }) {
     setLoading(true);
     try {
       const dateStr = today.toISOString().split('T')[0];
+
+      // Pobierz wpisy tygodnia z zapisanymi analizami
       const res = await fetch(`${API_BASE}/ai/week-summary/${USER_ID}?date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         setSummary(data.analysis);
-        setWeekNotes(Array(data.noteCount).fill(null));
+        setWeekNotes(data.weekNotes || []);
+      }
+
+      // Pobierz porady (AiAdvice) z tego tygodnia do sekcji rekomendacji
+      // Pobieramy pending (oczekujące) ORAZ te z bieżącego dnia (jeszcze nieocenione)
+      const advRes = await fetch(`${API_BASE}/notes/week/${USER_ID}?date=${dateStr}`);
+      if (advRes.ok) {
+        const notes = await advRes.json();
+        // Zbierz ID wpisów i pobierz porady dla nich
+        // Wyświetlimy ostatnie porady AI jako rekomendacje tygodnia
+        setWeekNotes(notes);
       }
     } catch (err) {
-      console.log('Błąd pobierania podsumowania AI:', err);
+      console.log('Błąd pobierania podsumowania:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useFocusEffect(useCallback(() => { fetchSummary(); }, [fetchSummary]));
+
+  // Pobierz porady wyświetlane w sekcji rekomendacji: z ostatniego wpisu tygodnia
+  const latestNoteWithAdvice = weekNotes.find(n => n.analysis_json);
+  const latestAnalysis = latestNoteWithAdvice
+    ? (() => { try { return JSON.parse(latestNoteWithAdvice.analysis_json); } catch { return null; } })()
+    : null;
 
   // Oblicz wynik wellnessowy
   const wellnessScore = summary
@@ -100,25 +119,38 @@ export default function ChartsScreen({ navigation }) {
               <TrendBar label="ZŁOŚĆ"   value={summary.zlosc}    color="#B71C1C" icon={<Heart  size={14} color="#B71C1C" />} />
             </View>
 
-            {/* Nastrój + Rekomendacje AI */}
+            {/* Nastrój + Rekomendacje z bazy (bez re-generowania AI) */}
             <View style={styles.insightsSection}>
               <Text style={styles.sectionTitle}>WNIOSKI I REKOMENDACJE AI</Text>
 
               <View style={[styles.insightCard, { backgroundColor: '#E0F0E3' }]}>
                 <View style={styles.insightHeaderRow}>
                   <Brain size={16} color={COLORS.primary} />
-                  <Text style={styles.insightTitle}>Ocena nastroju</Text>
+                  <Text style={styles.insightTitle}>Ocena nastroju (ostatni wpis)</Text>
                 </View>
-                <Text style={styles.insightText}>{summary.nastroj}</Text>
+                <Text style={styles.insightText}>
+                  {latestAnalysis ? latestAnalysis.nastroj : summary.nastroj}
+                </Text>
               </View>
 
-              <View style={[styles.insightCard, { backgroundColor: '#E6F0F6' }]}>
-                <View style={styles.insightHeaderRow}>
-                  <Activity size={16} color="#2D5A88" />
-                  <Text style={[styles.insightTitle, { color: '#2D5A88' }]}>Rekomendacje</Text>
-                </View>
-                <Text style={styles.insightText}>{summary.rekomendacje}</Text>
-              </View>
+              {/* Porady z ostatniego wpisu tygodnia */}
+              {latestNoteWithAdvice && !latestNoteWithAdvice.analysis_json ? null :
+                [1, 2, 3].map(i => {
+                  const porada = latestAnalysis?.[`porada${i}`];
+                  if (!porada) return null;
+                  return (
+                    <View key={i} style={[styles.insightCard, { backgroundColor: '#E6F0F6' }]}>
+                      <View style={styles.insightHeaderRow}>
+                        <Activity size={16} color="#2D5A88" />
+                        <Text style={[styles.insightTitle, { color: '#2D5A88' }]}>
+                          {porada.category || `Porada ${i}`}
+                        </Text>
+                      </View>
+                      <Text style={styles.insightText}>{porada.text}</Text>
+                    </View>
+                  );
+                })
+              }
             </View>
           </>
         ) : (
