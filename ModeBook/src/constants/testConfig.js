@@ -1,6 +1,6 @@
 
 //export const TEST_DATE = null;
-export const TEST_DATE = new Date('2026-05-30T12:00:00');
+export const TEST_DATE = new Date('2026-06-3T12:00:00');
 
 export function getActiveDate() {
   return TEST_DATE ? new Date(TEST_DATE) : new Date();

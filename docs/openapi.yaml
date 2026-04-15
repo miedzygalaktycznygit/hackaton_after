@@ -1,0 +1,476 @@
+openapi: 3.0.0
+info:
+  title: MoodBook API
+  description: Pełna dokumentacja API backendu wspierającego aplikację MoodBook — inteligentny asystent trackingu samopoczucia i zdrowia współpracujący z lokalnym LLM.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Serwer deweloperski
+tags:
+  - name: Notes
+    description: Zarządzanie wpisami użytkownika (parametry fizyczne i z opisem ogólnym)
+  - name: AI
+    description: Moduł Sztucznej Inteligencji i porad zdrowotnych generowanych przez LLM
+  - name: Daily Mood
+    description: Krótkie meldunki o nastroju w danych interwałach
+  - name: Summary Note
+    description: Podsumowania okresowe zdrowia
+
+paths:
+  /notes/create:
+    post:
+      tags:
+        - Notes
+      summary: Stwórz nowy wpis
+      description: Zapisuje w bazie notatkę dzienną użytkownika i jej parametry (woda, odżywianie, sen).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                  example: 1
+                content:
+                  type: string
+                  description: Opis tekstowy (w tym informacje o występowaniu bólu itd.)
+                  example: "Ból: Yes, it hurt\nSzczegóły bólu: Ból pleców\n\nNotatki ogólne:\nCiężki dzień w pracy, mało odpoczynku."
+                ammount_sleep:
+                  type: number
+                  format: float
+                  example: 6.5
+                ammount_of_water:
+                  type: number
+                  format: float
+                  example: 1.5
+                nutrition_intake:
+                  type: string
+                  example: "Jajecznica rano, kurczak z ryżem na obiad"
+                date_added:
+                  type: string
+                  format: date-time
+                  example: "2026-06-03T12:00:00Z"
+      responses:
+        '201':
+          description: Pomyślnie utworzono wpis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  noteId:
+                    type: integer
+        '500':
+          description: Błąd bazy danych
+
+  /notes/week/{userId}:
+    get:
+      tags:
+        - Notes
+      summary: Zwróć wpisy dla danego tygodnia
+      description: Pobiera wpisy używając filtru początkowo ustawionego z daty, pobieraj obszar 7-dniowy
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+            example: 1
+        - in: query
+          name: date
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2026-06-03"
+          description: Aktualny dzień – wpisy dla bieżącego tygodnia na bazujący na tej dacie
+      responses:
+        '200':
+          description: Lista wpisów dla wybranego dnia (zazwyczaj grupie do tygodnia)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+        '500':
+          description: Błąd bazy danych
+
+  /notes/all/{userId}:
+    get:
+      tags:
+        - Notes
+      summary: Historia wpisów (stronicowana)
+      description: Zwraca historię wszystkich wpisów zdrowotnych podzielonych przez stronicowanie offset.
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+            example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 15
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Pomyślnie pobrana lista limitowna notatek
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+
+  /notes/{userId}:
+    get:
+      tags:
+        - Notes
+      summary: Pobiera zupełnie wszystkie notatki
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Pełna lista zdarzeń
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+
+  /ai/analyze-note:
+    post:
+      tags:
+        - AI
+      summary: Analizuje i zwraca wynik opisu medycznego
+      description: Korzysta z LLM aby podsumować dostarczony element noteData. Rzuca ocenami emocji szczęścia, stresu, smutka, wypluwa nowe porady do zastosowania. Automatycznie też zapisuje jsona na obiekt Notatki w bazie danych jeśli podano noteId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                noteData:
+                  $ref: '#/components/schemas/NoteDataInput'
+                noteId:
+                  type: integer
+                  description: ID notatki do której chcemy od razu dopisać "analysis_json". Opcjonalnie rówież wygeneruje nowe wpisy o poradach 'AiAdvice'.
+                  example: 54
+                userId:
+                  type: integer
+      responses:
+        '200':
+          description: Zwraca obiekt z analysis oraz listą zapisanych adviceIds.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  analysis:
+                    $ref: '#/components/schemas/AiAnalysis'
+                  adviceIds:
+                    type: array
+                    items:
+                      type: integer
+
+  /ai/week-summary/{userId}:
+    get:
+      tags:
+        - AI
+      summary: Pobiera lub generuje podsumowanie z minionych 7 dni
+      description: Agreguje wynik z notatek z ostatnich dni. Jeśli znajdzie notatki z uprzednimi analizami - łączy ich średnie arytmetyczne parametrów emocjonalnych.
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-06-03"
+      responses:
+        '200':
+          description: Zwracana jest tygodniowa agregacja nastroju, count i lista pełna raw wpisów z JSONAMI dla frontu.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  analysis:
+                    $ref: '#/components/schemas/AiAnalysis'
+                  noteCount:
+                    type: integer
+                  weekNotes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Note'
+
+  /ai/pending-advice/{userId}:
+    get:
+      tags:
+        - AI
+      summary: Porady zawieszone na wczorajszy dzień
+      description: API sprawdza porady dla użytkownika utworzone w dniach przed zadaną `date`, które posiadają status pusty `WasFollowed IS NULL`. Służy to do tworzenia promptu "jak sprawdziła się porada?".
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Rekordy 'AiAdvice' przygotowane na ewaluacje.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AiAdvice'
+
+  /ai/advice-feedback:
+    post:
+      tags:
+        - AI
+      summary: Zamknij prośbe o status wdrożonej porady
+      description: Otrzymuje ID porady i zapisuje zwrotnie boolean dotyczący tego, czy użytkownik wcielił zalecenie w życie, lub ocenia issuePersists wg algorytmów z powiązanymi triggerami fizyki/wody.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                adviceId:
+                  type: integer
+                  example: 12
+                wasFollowed:
+                  type: boolean
+                  example: true
+                issuePersists:
+                  type: boolean
+                  nullable: true
+                  description: Flaga czy problem opisany przez model utrzymał się w tym formularzu (nawet jeśli wprowadzono porade wczoraj)
+                  example: false
+      responses:
+        '200':
+          description: Pomyślnie zaktualizowane polecenie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Brak wymaganych pól
+
+  /daily-mood/create:
+    post:
+      tags:
+        - Daily Mood
+      summary: Stwórz daily mood check-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                mood_id:
+                  type: integer
+                date:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Powodzenie
+
+  /daily-mood/{id}:
+    get:
+      tags:
+        - Daily Mood
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Wynik 
+
+  /summary-note/create:
+    post:
+      tags:
+        - Summary Note
+      summary: Utwórz w bazie adnotację podsumowania
+      responses:
+        '200':
+          description: Powodzenie
+
+  /summary-note/{id}:
+    get:
+      tags:
+        - Summary Note
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Podsumowanie z bazy
+
+components:
+  schemas:
+    Note:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 124
+        userid:
+          type: integer
+          example: 1
+        content:
+          type: string
+          example: "Ból: No Pain\nSzczegóły bólu: \n\nNotatki ogólne:\nŚwietny wesoły dzień, dobrze spałem."
+        ammout_sleep:
+          type: number
+          format: float
+          example: 8.5
+        ammout_of_water:
+          type: number
+          format: float
+          example: 2.0
+        nutrition_intake:
+          type: string
+          example: "Dużo białka, zdrowe jedzenie."
+        date_added:
+          type: string
+          format: date-time
+          example: "2026-06-03T14:30:00Z"
+        analysis_json:
+          type: string
+          description: Stringified struktury AiAnalysis. Modeluje oceny AI.
+          nullable: true
+
+    NoteDataInput:
+      type: object
+      properties:
+        userId:
+          type: integer
+          example: 1
+        content:
+          type: string
+          example: "Czuje sie wspaniale"
+        ammount_sleep:
+          type: number
+          example: 8
+        ammount_of_water:
+          type: number
+          example: 2.5
+        nutrition_intake:
+          type: string
+          example: "Schabowy pomarańcze"
+        date_added:
+          type: string
+          format: date-time
+          example: "2026-06-03T20:20:20Z"
+
+    AiAnalysis:
+      type: object
+      properties:
+        nastroj:
+          type: string
+          example: "Bardzo pozytywny nastrój wynikający z wygrania hackathonu i ogólnego sukcesu!"
+        szczescie:
+          type: integer
+          example: 100
+        smutek:
+          type: integer
+          example: 0
+        stres:
+          type: integer
+          example: 0
+        zlosc:
+          type: integer
+          example: 0
+        porada1:
+          $ref: '#/components/schemas/AiAdviceContent'
+        porada2:
+          $ref: '#/components/schemas/AiAdviceContent'
+        porada3:
+          $ref: '#/components/schemas/AiAdviceContent'
+
+    AiAdviceContent:
+      type: object
+      properties:
+        text:
+          type: string
+          example: "Aby podnieść swój poziom nawodnienia, celuj w cel minimum 2 l dziennie."
+        category:
+          type: string
+          example: "nawodnienie"
+
+    AiAdvice:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 45
+        userid:
+          type: integer
+          example: 1
+        noteid:
+          type: integer
+          example: 124
+        advicetext:
+          type: string
+          example: "Skoro boli cię głowa, pamiętaj by robić częste i powolne oddechy."
+        category:
+          type: string
+          example: "ból"
+        issueddate:
+          type: string
+          format: date
+          example: "2026-06-02"
+        wasfollowed:
+          type: boolean
+          nullable: true
+          example: null
+        issuepersists:
+          type: boolean
+          nullable: true
+          example: null
