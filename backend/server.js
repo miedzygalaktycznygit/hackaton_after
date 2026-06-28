@@ -1,3 +1,4 @@
+require('dotenv').config();
 const OpenAi = require("openai");
 const express = require('express')
 const { InitDb } = require("./src/db/db_init")
@@ -18,18 +19,16 @@ app.use("/daily-mood", DailyMoodRouter)
 app.use("/summary-note", SummaryNoteRouter)
 app.use("/ai", AiRouter)
 
-
-
 const port = 3000
 
-const BASE_URL = "http://engine.kin.tu.kielce.pl:32597/v1"
-const API_KEY = 'sk-WbVjon5KgudCD0YdT-M-_A'
-const LLM_MODELS = ['bielik', 'gemma4:small', 'gemma4:large']
+const BASE_URL = process.env.BASE_URL || "http://engine.kin.tu.kielce.pl:32597/v1"
+const API_KEY = process.env.API_KEY || 'sk-WbVjon5KgudCD0YdT-M-_A'
+const LLM_MODEL = process.env.LLM_MODEL || 'bielik'
 
 const EMB_MODEL = "stella-embeddings"
 const RERANK_MODEL = "polish-reranker"
 
-const client = OpenAi({
+const client = new OpenAi({
   apiKey: API_KEY,
   baseURL: BASE_URL
 });
@@ -38,7 +37,7 @@ const client = OpenAi({
 
 app.get('/', async (req, res) => {
   const completion = await client.chat.completions.create({
-    model: LLM_MODELS[0],
+    model: LLM_MODEL,
     messages: [{ "role": "user", "content": "Wypowiedź pacjenta: Dzisiaj wygrałem hackathon, jestem koksem. W jakim nastroju jest pacjent? Jakie masz rekomendacje dla niego. Napisz procentowo ile szczęscia odczuwa, smutku i stresu" }],
   });
   res.send(completion.choices[0].message.content)

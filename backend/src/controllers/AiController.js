@@ -1,6 +1,6 @@
-const { analyzeNote, analyzeWeekSummary } = require('../services/AiService');
-const { returnNotesForWeek, updateNoteAnalysis } = require('../services/NoteService');
-const { saveAdvice, getPendingAdvice, markAdviceFeedback, getIneffectiveAdvice, getEffectiveAdvice } = require('../services/AdviceService');
+const { analyzeNote, analyzeWeekSummary, generateEmbedding } = require('../services/AiService');
+const { returnNotesForWeek, updateNoteAnalysis, updateNoteEmbedding } = require('../services/NoteService');
+const { saveAdvice, getPendingAdvice, markAdviceFeedback, getIneffectiveAdvice, getEffectiveAdvice, getAdviceForNote } = require('../services/AdviceService');
 
 // POST /ai/analyze-note
 // Body: { noteData, noteId, userId }
@@ -22,7 +22,7 @@ async function analyzeNoteHandler(req, res) {
     let savedAdvices = [];
     if (noteId) {
       const advices = [analysis.porada1, analysis.porada2, analysis.porada3].filter(Boolean);
-      // Równolegle: zapisz porady i zapisz analizę do wpisu
+      // Równolegle: zapisz porady, zapisz analizę do wpisu i zapisz embedding
       [savedAdvices] = await Promise.all([
         saveAdvice(uid, noteId, advices),
         updateNoteAnalysis(noteId, {
@@ -32,6 +32,7 @@ async function analyzeNoteHandler(req, res) {
           stres: analysis.stres,
           zlosc: analysis.zlosc,
         }),
+        generateEmbedding(noteData.content || '').then(emb => updateNoteEmbedding(noteId, emb))
       ]);
     }
 
@@ -77,13 +78,17 @@ async function weekSummaryHandler(req, res) {
       const lastNastroj = analysedNotes[0].analysis.nastroj;
       // Zbierz porady z ostatniego wpisu (najnowsze)
       const lastNote = notesWithAnalysis[0];
-      
+      const advices = lastNote ? await getAdviceForNote(lastNote.id) : [];
+
       aggregatedAnalysis = {
         nastroj: lastNastroj,
         szczescie: avg('szczescie'),
         smutek: avg('smutek'),
         stres: avg('stres'),
         zlosc: avg('zlosc'),
+        porada1: advices[0] || null,
+        porada2: advices[1] || null,
+        porada3: advices[2] || null,
       };
     }
 

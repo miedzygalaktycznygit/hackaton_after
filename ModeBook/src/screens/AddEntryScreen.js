@@ -85,8 +85,23 @@ export default function AddEntryScreen({ navigation }) {
         if (cat === 'odżywianie' || cat === 'jedzenie') {
           return !nutrition || nutrition.trim().length < 3;
         }
-        // Dla kategorii których nie możemy ocenić z formularza — null (nieznana skuteczność)
-        return null;
+        
+        // Domniemany fallback dla stresu, relaksu, zdrowia psychicznego i innych kategorii na podstawie tekstu notatki:
+        const text = (notes || '').toLowerCase();
+        const hasNegativeKeywords = text.includes('stres') || 
+                                    text.includes('zestres') || 
+                                    text.includes('napię') || 
+                                    text.includes('nerw') || 
+                                    text.includes('lęk') || 
+                                    text.includes('niepok') || 
+                                    text.includes('smut') || 
+                                    text.includes('źle') || 
+                                    text.includes('boli') || 
+                                    text.includes('ból') || 
+                                    text.includes('zmęcz') ||
+                                    text.includes('migren') ||
+                                    text.includes('głow');
+        return hasNegativeKeywords;
       };
 
       const feedbackPromises = pendingAdvice.map(adv => {
@@ -133,18 +148,21 @@ export default function AddEntryScreen({ navigation }) {
       } else {
         navigation.replace('AiResult', {
           isLoading: false,
-          analysis: {
-            nastroj: 'Wpis został zapisany pomyślnie.',
-            porada1: { text: 'Analiza AI chwilowo niedostępna.', category: 'ogólne' },
-            porada2: { text: 'Spróbuj później.', category: 'ogólne' },
-            porada3: { text: 'Dodaj kolejny wpis jutro.', category: 'ogólne' },
-            szczescie: 50, smutek: 0, stres: 0, zlosc: 0,
-          }
+          isError: true,
+          noteData,
+          noteId,
+          userId: USER_ID
         });
       }
     } catch (error) {
       console.log('Błąd:', error);
-      Alert.alert('Błąd połączenia', `Nie można połączyć z serwerem ${API_BASE}`);
+      navigation.replace('AiResult', {
+        isLoading: false,
+        isError: true,
+        noteData,
+        noteId,
+        userId: USER_ID
+      });
     } finally {
       setIsSubmitting(false);
     }

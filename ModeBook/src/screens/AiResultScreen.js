@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
+import { getActiveDate, API_BASE, USER_ID } from '../constants/testConfig';
 import { Activity, Smile, Frown, Zap, Heart, CheckCircle } from 'lucide-react-native';
 
 const EmotionBar = ({ label, value, color, icon }) => (
@@ -20,14 +21,78 @@ const EmotionBar = ({ label, value, color, icon }) => (
 );
 
 export default function AiResultScreen({ navigation, route }) {
-  const { analysis, isLoading } = route.params || {};
+  const params = route.params || {};
+  const [loading, setLoading] = useState(params.isLoading || false);
+  const [error, setError] = useState(params.isError || false);
+  const [analysis, setAnalysis] = useState(params.analysis || null);
 
-  if (isLoading || !analysis) {
+  useEffect(() => {
+    setLoading(params.isLoading || false);
+    setError(params.isError || false);
+    setAnalysis(params.analysis || null);
+  }, [params]);
+
+  const handleRetry = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const response = await fetch(`${API_BASE}/ai/analyze-note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          noteData: params.noteData,
+          noteId: params.noteId,
+          userId: params.userId
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setAnalysis(result.analysis);
+      } else {
+        setError(true);
+      }
+    } catch (err) {
+      console.log("Retry error:", err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || (!analysis && !error)) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Analizuję Twój wpis...{'\n'}To może chwilę potrwać</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.errorContainer}>
+          <View style={styles.errorIconContainer}>
+            <Zap size={48} color="#E05540" strokeWidth={2.5} />
+          </View>
+          <Text style={styles.errorTitle}>Przekroczono limit zapytań AI</Text>
+          <Text style={styles.errorDescription}>
+            Twój wpis został zapisany pomyślnie, ale darmowy serwer AI jest chwilowo przeciążony lub wyczerpał limit zapytań (Error 429).
+          </Text>
+          <Text style={styles.errorSubDescription}>
+            Kliknij poniższy przycisk, aby spróbować wygenerować analizę i porady ponownie.
+          </Text>
+          
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.retryButtonText}>Spróbuj ponownie</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+            <Text style={styles.backButtonText}>Wróć do ekranu głównego</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -248,5 +313,69 @@ const styles = StyleSheet.create({
     fontSize: SIZES.font,
     color: COLORS.primary,
     lineHeight: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SIZES.large,
+    backgroundColor: COLORS.background,
+  },
+  errorIconContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#FDECEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SIZES.large,
+  },
+  errorTitle: {
+    ...FONTS.bold,
+    fontSize: SIZES.large * 1.2,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: SIZES.medium,
+  },
+  errorDescription: {
+    ...FONTS.medium,
+    fontSize: SIZES.medium,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: SIZES.small,
+  },
+  errorSubDescription: {
+    ...FONTS.regular,
+    fontSize: SIZES.small * 1.2,
+    color: '#8A99AD',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: SIZES.large * 1.5,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SIZES.medium,
+    paddingHorizontal: SIZES.large * 2,
+    borderRadius: SIZES.xl,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: SIZES.medium,
+  },
+  retryButtonText: {
+    ...FONTS.bold,
+    fontSize: SIZES.medium,
+    color: COLORS.surface,
+  },
+  backButton: {
+    paddingVertical: SIZES.small,
+  },
+  backButtonText: {
+    ...FONTS.bold,
+    fontSize: SIZES.small * 1.2,
+    color: COLORS.primary,
   },
 });

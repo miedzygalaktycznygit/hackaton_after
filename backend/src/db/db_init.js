@@ -16,13 +16,15 @@ async function InitDb() {
             Ammout_sleep NUMERIC(4,1),
             Ammout_of_water NUMERIC(4,1),
             Nutrition_intake VARCHAR(255),
-            Date_added TIMESTAMP DEFAULT NOW()
+            Date_added TIMESTAMP DEFAULT NOW(),
+            Embedding DOUBLE PRECISION[]
         );`
     )
 
     // Bezpieczne dodanie kolumn dla już istniejących baz danych
     await pool.query(`ALTER TABLE Notes ADD COLUMN IF NOT EXISTS Date_added TIMESTAMP DEFAULT NOW();`)
     await pool.query(`ALTER TABLE Notes ADD COLUMN IF NOT EXISTS Analysis_json TEXT;`)
+    await pool.query(`ALTER TABLE Notes ADD COLUMN IF NOT EXISTS Embedding DOUBLE PRECISION[];`)
 
     await pool.query(`
         CREATE TABLE IF NOT EXISTS DailyMood (
@@ -48,8 +50,10 @@ async function InitDb() {
         Category VARCHAR(100),
         WasFollowed BOOLEAN DEFAULT NULL,
         WasEffective BOOLEAN DEFAULT NULL,
+        Embedding DOUBLE PRECISION[],
         CreatedAt TIMESTAMP DEFAULT NOW()
     );`)
+    await pool.query(`ALTER TABLE AiAdvice ADD COLUMN IF NOT EXISTS Embedding DOUBLE PRECISION[];`);
 }
 
 module.exports = { InitDb }

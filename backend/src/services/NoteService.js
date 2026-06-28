@@ -7,6 +7,7 @@
 
 //
 const { pool } = require('../db/db_config')
+const { generateEmbedding, cosineSimilarity } = require('./AiService');
 
 async function addNote(userId, content, ammount_sleep, ammount_of_water, nutrition_intake, date_added) {
     try {
@@ -89,4 +90,59 @@ async function returnAllNotes(userId, limit = 15, offset = 0) {
     }
 }
 
-module.exports = {addNote, returnNotes, returnNotesForWeek, updateNoteAnalysis, returnAllNotes}
+// Zapisz wektor (embedding) do wpisu
+async function updateNoteEmbedding(noteId, embedding) {
+    try {
+        await pool.query(
+            `UPDATE Notes SET Embedding = $1 WHERE Id = $2`,
+            [embedding, noteId]
+        );
+    } catch (err) {
+        console.error('updateNoteEmbedding error:', err);
+    }
+}
+
+// Wyszukiwanie semantyczne (Vector Similarity Search w pamięci RAM)
+async function searchNotesSemantic(userId, queryText, limit = 5) {
+    try {
+        const queryVec = await generateEmbedding(queryText);
+        
+        // Pobierz wszystkie notatki użytkownika z zapisanym wektorem
+        const result = await pool.query(
+            `SELECT Id, UserId, Content, Ammout_sleep, Ammout_of_water, Nutrition_intake, Date_added, Analysis_json, Embedding
+             FROM Notes WHERE UserId = $1 AND Embedding IS NOT NULL`,
+            [userId]
+        );
+        
+        const notes = result.rows;
+        
+        // Oblicz podobieństwo cosinusowe
+        const scoredNotes = notes.map(note => {
+            const score = cosineSimilarity(queryVec, note.Embedding || note.embedding);
+            return {
+                ...note,
+                Embedding: undefined, // ukrywamy wektor przed frontendem
+                embedding: undefined,
+                score: parseFloat(score.toFixed(4))
+            };
+        });
+        
+        // Sortuj malejąco według dopasowania
+        scoredNotes.sort((a, b) => b.score - a.score);
+        
+        return scoredNotes.slice(0, limit);
+    } catch (err) {
+        console.error('searchNotesSemantic error:', err);
+        throw new Error('Database search error');
+    }
+}
+
+module.exports = {
+    addNote,
+    returnNotes,
+    returnNotesForWeek,
+    updateNoteAnalysis,
+    returnAllNotes,
+    updateNoteEmbedding,
+    searchNotesSemantic
+};

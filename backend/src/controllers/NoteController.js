@@ -1,4 +1,4 @@
-const { addNote, returnNotes, returnNotesForWeek, returnAllNotes } = require('../services/NoteService')
+const { addNote, returnNotes, returnNotesForWeek, returnAllNotes, searchNotesSemantic } = require('../services/NoteService')
 
 async function createNote(req, res) {
     const {userId, content, ammount_sleep, ammount_of_water, nutrition_intake, date_added} = req.body;
@@ -49,4 +49,20 @@ async function getAllNotes(req, res) {
     }
 }
 
-module.exports = { createNote, getNotes, getNotesForWeek, getAllNotes }
+// GET /notes/search/:userId?query=xyz
+async function searchNotes(req, res) {
+    const { userId } = req.params;
+    const { query } = req.query;
+    if (!query) {
+        return res.status(400).json({ error: 'Brak parametru query' });
+    }
+    try {
+        const result = await searchNotesSemantic(userId, query);
+        res.status(200).json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database search error' });
+    }
+}
+
+module.exports = { createNote, getNotes, getNotesForWeek, getAllNotes, searchNotes }

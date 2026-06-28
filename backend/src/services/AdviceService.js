@@ -1,14 +1,21 @@
 const { pool } = require('../db/db_config');
+const { generateEmbedding } = require('./AiService');
 
 // Zapisz porady AI po wpisie
 async function saveAdvice(userId, noteId, advices) {
   // advices: [{text, category}]
   const saved = [];
   for (const adv of advices) {
+    let embedding = null;
+    try {
+      embedding = await generateEmbedding(adv.text || '');
+    } catch (err) {
+      console.error('Błąd generowania embeddingu dla porady:', err);
+    }
     const res = await pool.query(
-      `INSERT INTO AiAdvice (UserId, NoteId, AdviceText, Category)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [userId, noteId, adv.text, adv.category || 'ogólne']
+      `INSERT INTO AiAdvice (UserId, NoteId, AdviceText, Category, Embedding)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [userId, noteId, adv.text, adv.category || 'ogólne', embedding]
     );
     saved.push(res.rows[0]);
   }
@@ -56,7 +63,7 @@ async function markAdviceFeedback(adviceId, wasFollowed, issuePersists) {
 // Pobierz historię nieskutecznych porad dla AI (do kontekstu promptu)
 async function getIneffectiveAdvice(userId, limit = 10) {
   const res = await pool.query(
-    `SELECT AdviceText, Category FROM AiAdvice
+    `SELECT AdviceText, Category, Embedding FROM AiAdvice
      WHERE UserId = $1 AND WasEffective = false
      ORDER BY CreatedAt DESC LIMIT $2`,
     [userId, limit]
@@ -67,7 +74,7 @@ async function getIneffectiveAdvice(userId, limit = 10) {
 // Pobierz historię skutecznych porad
 async function getEffectiveAdvice(userId, limit = 10) {
   const res = await pool.query(
-    `SELECT AdviceText, Category FROM AiAdvice
+    `SELECT AdviceText, Category, Embedding FROM AiAdvice
      WHERE UserId = $1 AND WasEffective = true
      ORDER BY CreatedAt DESC LIMIT $2`,
     [userId, limit]
@@ -75,4 +82,21 @@ async function getEffectiveAdvice(userId, limit = 10) {
   return res.rows;
 }
 
-module.exports = { saveAdvice, getPendingAdvice, markAdviceFeedback, getIneffectiveAdvice, getEffectiveAdvice };
+// Pobierz porady przypisane do konkretnej notatki
+async function getAdviceForNote(noteId) {
+  const res = await pool.query(
+    `SELECT * FROM AiAdvice WHERE NoteId = $1 ORDER BY Id ASC`,
+    [noteId]
+  );
+  return res.rows;
+}
+
+module.exports = { 
+  saveAdvice, 
+  getPendingAdvice, 
+  markAdviceFeedback, 
+  getIneffectiveAdvice, 
+  getEffectiveAdvice,
+  getAdviceForNote 
+};
+
