@@ -3,7 +3,7 @@
 # Hackathon 2026 – Repozytorium Zespołu
 
 Witamy w oficjalnym repozytorium zespołu biorącego udział w hackathonie **Hackathon 2026**.  
-To repozytorium służy jako główne miejsce przechowywania **całego kodu, dokumentacji oraz zasobów** tworzonych podczas wydarzenia.
+To repozytorium służy jako główne miejsce przechowywania **całego kodu, dokumentacji oraz zasobów** tworzonych podczas wydarzenia.   
 
 ---
 
