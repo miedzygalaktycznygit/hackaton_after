@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoodBook - Interaktywna Dokumentacja Techniczna</title>
+  <!-- Google Fonts: Inter i JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #121824;
+      --bg-card: rgba(22, 30, 49, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --primary-color: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent-color: #a855f7;
+      --success-color: #10b981;
+      --danger-color: #f43f5e;
+      --warning-color: #f59e0b;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
+    }
+
+    header {
+      background: linear-gradient(135deg, #131b2e 0%, #0a0e17 100%);
+      padding: 2.5rem 2rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    }
+
+    .logo-container h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.25rem;
+    }
+
+    .logo-container p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .badge-container {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .badge {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge.api {
+      background: rgba(168, 85, 247, 0.15);
+      color: #d8b4fe;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .badge.db {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .container {
+      display: flex;
+      min-height: calc(100vh - 100px);
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      padding: 1.5rem 1rem;
+      flex-shrink: 0;
+    }
+
+    .nav-group {
+      margin-bottom: 2rem;
+    }
+
+    .nav-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+      padding-left: 0.5rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: rgba(99, 102, 241, 0.1);
+      color: #a5b4fc;
+      border-left: 3px solid var(--primary-color);
+    }
+
+    .nav-icon {
+      margin-right: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      padding: 2.5rem;
+      overflow-y: auto;
+      max-width: 1400px;
+    }
+
+    .doc-section {
+      display: none;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    .doc-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Tab Layout for Sub-sections */
+    .tabs-container {
+      margin-bottom: 2rem;
+    }
+
+    .tabs-header {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.75rem 0.25rem;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      color: var(--primary-color);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: var(--primary-color);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Split panel layout */
+    .split-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    /* Visual Mobile Mockup (CSS only) */
+    .phone-mockup {
+      width: 340px;
+      height: 640px;
+      background: #000;
+      border-radius: 36px;
+      border: 8px solid #1e293b;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+      position: relative;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    .phone-notch {
+      width: 110px;
+      height: 20px;
+      background: #1e293b;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      z-index: 10;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background-color: #0d131f;
+      display: flex;
+      flex-direction: column;
+      color: #cbd5e1;
+    }
+
+    .phone-header {
+      padding: 24px 15px 10px 15px;
+      background: #1e293b;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-weight: 700;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #f8fafc;
+    }
+
+    .phone-body {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    /* Mockup Form Elements */
+    .mock-group {
+      margin-bottom: 12px;
+    }
+
+    .mock-group label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .mock-field {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: #fff;
+    }
+
+    .mock-slider-track {
+      height: 6px;
+      background: #334155;
+      border-radius: 3px;
+      position: relative;
+      margin: 8px 0;
+    }
+
+    .mock-slider-bar {
+      height: 100%;
+      background: var(--primary-color);
+      border-radius: 3px;
+    }
+
+    .mock-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .mock-pill {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 6px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 0.75rem;
+    }
+
+    .mock-pill.active {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--primary-color);
+      color: #a5b4fc;
+      font-weight: 600;
+    }
+
+    .mock-btn {
+      width: 100%;
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* Mockup Results Elements */
+    .mock-chart-card {
+      background: #151f32;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .mock-bar-container {
+      margin-bottom: 6px;
+    }
+
+    .mock-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      margin-bottom: 2px;
+    }
+
+    .mock-bar-track {
+      height: 6px;
+      background: #334155;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .mock-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+    }
+
+    .mock-advice-box {
+      background: rgba(99, 102, 241, 0.05);
+      border: 1px dashed rgba(99, 102, 241, 0.2);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .mock-advice-tag {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #a5b4fc;
+      margin-bottom: 2px;
+    }
+
+    .mock-advice-desc {
+      font-size: 0.75rem;
+      line-height: 1.35;
+    }
+
+    .mock-feedback-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .mock-feedback-btn {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 4px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      text-align: center;
+    }
+
+    .mock-feedback-btn.active-yes {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--success-color);
+      color: #6ee7b7;
+    }
+
+    .mock-feedback-btn.active-no {
+      background: rgba(244, 63, 94, 0.15);
+      border-color: var(--danger-color);
+      color: #fda4af;
+    }
+
+    /* Mockup Error View */
+    .mock-error-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .mock-error-icon {
+      font-size: 2rem;
+      color: var(--danger-color);
+      margin-bottom: 10px;
+    }
+
+    .mock-error-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+
+    .mock-error-text {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 15px;
+    }
+
+    .mock-retry-btn {
+      background: var(--primary-color);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    /* Explanations panel */
+    .info-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.8rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .info-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #f0f6fc;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .info-list {
+      margin-bottom: 1.5rem;
+      padding-left: 1.25rem;
+    }
+
+    .info-list li {
+      margin-bottom: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .info-list li strong {
+      color: var(--text-primary);
+    }
+
+    /* Code Block Display */
+    .code-tree {
+      margin-top: 1.5rem;
+    }
+
+    .tree-node-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      cursor: pointer;
+      color: #818cf8;
+      padding: 0.5rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      transition: background 0.2s ease;
+    }
+
+    .tree-node-title:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tree-node-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+      margin-left: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .code-display {
+      background: #050811;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      margin-top: 0.5rem;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-mono);
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.5rem;
+    }
+
+    .code-display pre {
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      white-space: pre;
+    }
+
+    /* Simple Syntax Highlighting classes */
+    .hl-kw { color: #f43f5e; font-weight: 600; } 
+    .hl-fn { color: #38bdf8; } 
+    .hl-str { color: #34d399; } 
+    .hl-cmt { color: #64748b; font-style: italic; } 
+    .hl-num { color: #fb923c; } 
+
+    /* Flow step indicator styling */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .flow-step-item {
+      display: flex;
+      gap: 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--border-color);
+    }
+
+    .flow-step-item.active {
+      background: rgba(99, 102, 241, 0.05);
+      border-left-color: var(--primary-color);
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .flow-step-item.active .step-num {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: #fff;
+    }
+
+    .step-body h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: #fff;
+    }
+
+    .step-body p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <h1>MoodBook</h1>
+      <p>Interaktywna & Precyzyjna Dokumentacja Techniczna</p>
+    </div>
+    <div class="badge-container">
+      <span class="badge">React Native</span>
+      <span class="badge api">Gemini API (stella & 2.5-flash)</span>
+      <span class="badge db">PostgreSQL</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+      <div class="nav-group">
+        <div class="nav-title">Spis treści</div>
+        
+        <div class="nav-item active" onclick="switchSection('sec-overview', this)">
+          <span class="nav-icon">💡</span> O Aplikacji
+        </div>
+        
+        <div class="nav-item" onclick="switchSection('sec-add-note', this)">
+          <span class="nav-icon">📝</span> 1. Dodawanie Wpisu
+        </div>
+        
+        <div class="nav-item" onclick="switchSection('sec-ai-vector', this)">
+          <span class="nav-icon">🧠</span> 2. Analiza AI & Wektorowa
+        </div>
+        
+        <div class="nav-item" onclick="switchSection('sec-feedback', this)">
+          <span class="nav-icon">🔄</span> 3. Pętla Feedbacku
+        </div>
+        
+        <div class="nav-item" onclick="switchSection('sec-stats', this)">
+          <span class="nav-icon">📊</span> 4. Statystyki & Podsumowania
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+      
+      <!-- SECTION: Overview -->
+      <section id="sec-overview" class="doc-section active">
+        <h2>Architektura Systemu</h2>
+        <p class="section-desc">MoodBook to hybrydowa aplikacja dziennika nastroju, która wykorzystuje zaawansowane modele sztucznej inteligencji oraz bazę wektorową do sprawdzania skuteczności zaleceń i unikania ponownego proponowania nieskutecznych metod.</p>
+        
+        <div class="info-panel">
+          <h3 class="info-title">Kluczowe Mechanizmy</h3>
+          <ul class="info-list" style="padding-left: 0; list-style: none;">
+            <li style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: start;">
+              <span style="font-size: 1.5rem; background: rgba(99, 102, 241, 0.1); padding: 0.5rem; border-radius: 8px;">🧠</span>
+              <div>
+                <strong>Inteligentna Pętla Retry (Weryfikacja Wektorowa):</strong>
+                <p style="font-size: 0.9rem; margin-top: 0.25rem;">Backend po wygenerowaniu porad przez Gemini konwertuje je na wektory (embeddingi) i porównuje z nieskutecznymi poradami użytkownika. Jeśli podobieństwo cosinusowe przekracza próg <b>0.85</b>, odrzuca poradę i generuje nową.</p>
+              </div>
+            </li>
+            <li style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: start;">
+              <span style="font-size: 1.5rem; background: rgba(16, 185, 129, 0.1); padding: 0.5rem; border-radius: 8px;">🔄</span>
+              <div>
+                <strong>Pętla Feedbacku (Zamykanie Cyklu):</strong>
+                <p style="font-size: 0.9rem; margin-top: 0.25rem;">Przy każdym nowym wpisie system sprawdza, czy dawne problemy (ból fizyczny lub stres w notatkach) ustąpiły. W zależności od tego oznacza poprzednio stosowane porady jako skuteczne lub nieskuteczne.</p>
+              </div>
+            </li>
+            <li style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: start;">
+              <span style="font-size: 1.5rem; background: rgba(244, 63, 94, 0.1); padding: 0.5rem; border-radius: 8px;">⚠️</span>
+              <div>
+                <strong>Obsługa Błędów Rate Limit (429):</strong>
+                <p style="font-size: 0.9rem; margin-top: 0.25rem;">Aplikacja nie podaje sztucznych porad mockowych. W razie przeciążenia darmowego serwera, użytkownik otrzymuje jasny monit o błędzie z opcją natychmiastowego ponowienia zapytania ("Retry").</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- SECTION: 1. Dodawanie Wpisu -->
+      <section id="sec-add-note" class="doc-section">
+        <h2>1. Dodawanie Wpisu & Zapis</h2>
+        <p class="section-desc">Jak dane wprowadzane przez użytkownika na telefonie trafiają do bazy danych PostgreSQL.</p>
+        
+        <div class="tabs-container">
+          <div class="tabs-header">
+            <button class="tab-btn active" onclick="switchTab(this, 'tab-add-flow')">Przepływ</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-add-sim')">Wizualny Przykład</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-add-code')">Wywoływany Kod (1:1 z komentarzami)</button>
+          </div>
+          
+          <!-- Tab: Flow -->
+          <div id="tab-add-flow" class="tab-content active">
+            <div class="flow-steps">
+              <div class="flow-step-item active">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <h4>Formularz Mobilny (AddEntryScreen.js)</h4>
+                  <p>Użytkownik klika "Zapisz". Aplikacja formatuje notatkę (dokleja aktualny stan bólu pod etykietą "Ból: ...") i pakuje wszystkie dane liczbowe do obiektu JSON.</p>
+                </div>
+              </div>
+              <div class="flow-step-item active">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <h4>Zapytanie HTTP (POST /notes/create)</h4>
+                  <p>Żądanie z danymi dociera do backendu Express.js na zdefiniowaną trasę NoteRouter.js.</p>
+                </div>
+              </div>
+              <div class="flow-step-item active">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <h4>Zapis w bazie SQL (NoteService.js)</h4>
+                  <p>Funkcja addNote wstawia wiersz do tabeli Notes w PostgreSQL i za pomocą "RETURNING *" natychmiast odsyła nowo nadany noteId.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tab: Visual Example -->
+          <div id="tab-add-sim" class="tab-content">
+            <div class="split-layout">
+              <div class="phone-mockup">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                  <div class="phone-header">Nowy Wpis</div>
+                  <div class="phone-body">
+                    <div class="mock-group">
+                      <label>Godziny Snu</label>
+                      <div class="mock-slider-track"><div class="mock-slider-bar" style="width: 70%"></div></div>
+                      <div style="font-size:0.8rem; text-align:right;">7.0h</div>
+                    </div>
+                    <div class="mock-group">
+                      <label>Wypita Woda</label>
+                      <div class="mock-slider-track"><div class="mock-slider-bar" style="width: 40%"></div></div>
+                      <div style="font-size:0.8rem; text-align:right;">1.2l</div>
+                    </div>
+                    <div class="mock-group">
+                      <label>Poziom Bólu</label>
+                      <div class="mock-pills">
+                        <div class="mock-pill active">Boli mnie głowa</div>
+                        <div class="mock-pill">Bez bólu</div>
+                      </div>
+                    </div>
+                    <div class="mock-group">
+                      <label>Notatki ogólne</label>
+                      <div class="mock-field" style="min-height: 80px;">Strasznie boli mnie głowa, do tego mam wysoki poziom stresu w pracy...</div>
+                    </div>
+                    <div class="mock-btn">Zapisz wpis</div>
+                  </div>
+                </div>
+              </div>
+              <div class="info-panel">
+                <h3 class="info-title">Ekran formularza w aplikacji</h3>
+                <p>Użytkownik wypełnia formularz i klika przycisk <b>Zapisz wpis</b>.</p>
+                <p style="margin-top: 1rem;">Następuje wywołanie endpointu <code>POST /notes/create</code> w backendzie.</p>
+                <p style="margin-top: 1rem;"><strong>Formatowane dane:</strong></p>
+                <ul class="info-list" style="margin-top:0.5rem;">
+                  <li><code>content:</code> "Ból: Yes, it hurt\nSzczegóły bólu: Boli mnie głowa\n\nNotatki ogólne:\nStrasznie boli mnie głowa..."</li>
+                  <li><code>ammout_sleep:</code> 7.0</li>
+                  <li><code>ammout_of_water:</code> 1.2</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tab: Code -->
+          <div id="tab-add-code" class="tab-content">
+            <div class="code-tree">
+              
+              <div class="tree-node-title">📂 frontend/src/screens/AddEntryScreen.js ➔ handleSubmit() (Linie 46-155)</div>
+              <div class="tree-node-desc">
+                Metoda wywoływana przy kliknięciu przycisku zapisu wpisu. Odpowiada za zbiór danych, wysłanie feedbacku o poradach, zapis wpisu oraz żądanie analizy AI.
+              </div>
+              <div class="code-display">
+                <div class="code-header">AddEntryScreen.js</div>
+                <pre>
+  <span class="hl-kw">const</span> <span class="hl-fn">handleSubmit</span> = <span class="hl-kw">async</span> () => {
+    <span class="hl-cmt">// Sprawdzenie, czy użytkownik zaznaczył, czy występuje ból</span>
+    <span class="hl-kw">if</span> (!painLevel) {
+      Alert.<span class="hl-fn">alert</span>(<span class="hl-str">'Brak danych'</span>, <span class="hl-str">'Proszę zaznaczyć czy wystąpił ból.'</span>);
+      <span class="hl-kw">return</span>;
+    }
+
+    <span class="hl-cmt">// Zablokowanie przycisku zapisu w interfejsie (loader)</span>
+    <span class="hl-fn">setIsSubmitting</span>(<span class="hl-kw">true</span>);
+
+    <span class="hl-cmt">// Formatowanie tekstu wpisu łączącego poziom bólu, szczegóły oraz notatki ogólne</span>
+    <span class="hl-kw">const</span> fullContent = <span class="hl-str">`Ból: ${painLevel}\nSzczegóły bólu: ${painNotes || 'Brak'}\n\nNotatki ogólne:\n${notes}`</span>;
+    <span class="hl-kw">const</span> activeDate = <span class="hl-fn">getActiveDate</span>();
+    <span class="hl-kw">const</span> hasPainNow = painLevel === <span class="hl-str">'Yes, it hurt'</span>;
+
+    <span class="hl-cmt">// Tworzenie struktury danych wpisu do bazy</span>
+    <span class="hl-kw">const</span> noteData = {
+      userId: USER_ID,
+      content: fullContent,
+      ammout_sleep: <span class="hl-fn">parseFloat</span>(sleepHours) || <span class="hl-num">0</span>,
+      ammout_of_water: <span class="hl-fn">parseFloat</span>(waterIntake) || <span class="hl-num">0</span>,
+      nutrition_intake: nutrition,
+      date_added: activeDate.<span class="hl-fn">toISOString</span>(),
+    };
+
+    <span class="hl-kw">try</span> {
+      <span class="hl-cmt">// Funkcja pomocnicza: ocenia, czy problem w danej kategorii wciąż występuje</span>
+      <span class="hl-kw">const</span> <span class="hl-fn">getIssuePersists</span> = (category) => {
+        <span class="hl-kw">const</span> cat = (category || <span class="hl-str">''</span>).<span class="hl-fn">toLowerCase</span>();
+        <span class="hl-cmt">// Jeśli porada dotyczyła bólu - problem występuje, gdy dzisiejszy painLevel = 'Yes, it hurt'</span>
+        <span class="hl-kw">if</span> (cat === <span class="hl-str">'ból'</span> || cat === <span class="hl-str">'pain'</span> || cat === <span class="hl-str">'bol'</span>) {
+          <span class="hl-kw">return</span> hasPainNow;
+        }
+        <span class="hl-cmt">// Jeśli dotyczyła nawodnienia - problem występuje, jeśli dzisiejsze spożycie wody < 1.5L</span>
+        <span class="hl-kw">if</span> (cat === <span class="hl-str">'nawodnienie'</span> || cat === <span class="hl-str">'woda'</span>) {
+          <span class="hl-kw">return</span> <span class="hl-fn">parseFloat</span>(waterIntake) < <span class="hl-num">1.5</span>;
+        }
+        <span class="hl-cmt">// Jeśli dotyczyła snu - problem występuje, jeśli dzisiejszy sen < 6 godzin</span>
+        <span class="hl-kw">if</span> (cat === <span class="hl-str">'sen'</span> || cat === <span class="hl-str">'sleep'</span>) {
+          <span class="hl-kw">return</span> <span class="hl-fn">parseFloat</span>(sleepHours) < <span class="hl-num">6</span>;
+        }
+        <span class="hl-cmt">// Jeśli dotyczyła odżywiania - problem występuje, gdy notatki o jedzeniu są zbyt krótkie</span>
+        <span class="hl-kw">if</span> (cat === <span class="hl-str">'odżywianie'</span> || cat === <span class="hl-str">'jedzenie'</span>) {
+          <span class="hl-kw">return</span> !nutrition || nutrition.<span class="hl-fn">trim</span>().length < <span class="hl-num">3</span>;
+        }
+        <span class="hl-cmt">// Wyszukiwanie słów kluczowych (np. stres, lęk, migrena) w dzisiejszej notatce dla kategorii psychicznych</span>
+        <span class="hl-kw">const</span> text = (notes || <span class="hl-str">''</span>).<span class="hl-fn">toLowerCase</span>();
+        <span class="hl-kw">const</span> hasNegativeKeywords = text.<span class="hl-fn">includes</span>(<span class="hl-str">'stres'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'zestres'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'napię'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'nerw'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'lęk'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'niepok'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'smut'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'źle'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'boli'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'ból'</span>) || 
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'zmęcz'</span>) ||
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'migren'</span>) ||
+                                    text.<span class="hl-fn">includes</span>(<span class="hl-str">'głow'</span>);
+        <span class="hl-kw">return</span> hasNegativeKeywords;
+      };
+
+      <span class="hl-cmt">// Wysłanie ocen skuteczności dla wszystkich oczekujących porad (WasFollowed + IssuePersists)</span>
+      <span class="hl-kw">const</span> feedbackPromises = pendingAdvice.<span class="hl-fn">map</span>(adv => {
+        <span class="hl-kw">const</span> fb = adviceFeedback[adv.id];
+        <span class="hl-kw">if</span> (fb === <span class="hl-kw">undefined</span> || fb === <span class="hl-kw">null</span>) <span class="hl-kw">return null</span>;
+        <span class="hl-kw">const</span> issuePersists = <span class="hl-fn">getIssuePersists</span>(adv.category);
+        <span class="hl-kw">return</span> <span class="hl-fn">fetch</span>(<span class="hl-str">`${API_BASE}/ai/advice-feedback`</span>, {
+          method: <span class="hl-str">'POST'</span>,
+          headers: { <span class="hl-str">'Content-Type'</span>: <span class="hl-str">'application/json'</span> },
+          body: JSON.<span class="hl-fn">stringify</span>({ adviceId: adv.id, wasFollowed: fb, issuePersists }),
+        });
+      }).<span class="hl-fn">filter</span>(Boolean);
+      <span class="hl-kw">await</span> Promise.<span class="hl-fn">all</span>(feedbackPromises);
+
+      <span class="hl-cmt">// Zapis nowego wpisu w bazie danych PostgreSQL</span>
+      <span class="hl-kw">const</span> saveResponse = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(<span class="hl-str">`${API_BASE}/notes/create`</span>, {
+        method: <span class="hl-str">'POST'</span>,
+        headers: { <span class="hl-str">'Content-Type'</span>: <span class="hl-str">'application/json'</span> },
+        body: JSON.<span class="hl-fn">stringify</span>(noteData),
+      });
+
+      <span class="hl-kw">if</span> (!saveResponse.ok) {
+        <span class="hl-kw">const</span> errData = <span class="hl-kw">await</span> saveResponse.<span class="hl-fn">json</span>().<span class="hl-fn">catch</span>(() => ({}));
+        Alert.<span class="hl-fn">alert</span>(<span class="hl-str">'Błąd'</span>, <span class="hl-str">`Nie udało się zapisać danych: ${errData.error || 'nieznany błąd'}`</span>);
+        <span class="hl-fn">setIsSubmitting</span>(<span class="hl-kw">false</span>);
+        <span class="hl-kw">return</span>;
+      }
+      <span class="hl-kw">const</span> saveData = <span class="hl-kw">await</span> saveResponse.<span class="hl-fn">json</span>();
+      <span class="hl-kw">const</span> noteId = saveData.noteId;
+
+      <span class="hl-cmt">// Natychmiastowa nawigacja do ekranu wyników z włączonym ekranem ładowania</span>
+      navigation.<span class="hl-fn">replace</span>(<span class="hl-str">'AiResult'</span>, { isLoading: <span class="hl-kw">true</span>, analysis: <span class="hl-kw">null</span> });
+
+      <span class="hl-cmt">// Wywołanie backendowego endpointu analizy nastroju AI</span>
+      <span class="hl-kw">const</span> aiResponse = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(<span class="hl-str">`${API_BASE}/ai/analyze-note`</span>, {
+        method: <span class="hl-str">'POST'</span>,
+        headers: { <span class="hl-str">'Content-Type'</span>: <span class="hl-str">'application/json'</span> },
+        body: JSON.<span class="hl-fn">stringify</span>({ noteData, noteId, userId: USER_ID }),
+      });
+
+      <span class="hl-kw">if</span> (aiResponse.ok) {
+        <span class="hl-cmt">// Sukces AI: przełączamy na ekran raportu z danymi analizy</span>
+        <span class="hl-kw">const</span> result = <span class="hl-kw">await</span> aiResponse.<span class="hl-fn">json</span>();
+        navigation.<span class="hl-fn">replace</span>(<span class="hl-str">'AiResult'</span>, { isLoading: <span class="hl-kw">false</span>, analysis: result.analysis });
+      } <span class="hl-kw">else</span> {
+        <span class="hl-cmt">// Błąd (np. 429 Rate Limit): przekazujemy flagę błędu oraz dane umożliwiające ponowienie (Retry)</span>
+        navigation.<span class="hl-fn">replace</span>(<span class="hl-str">'AiResult'</span>, {
+          isLoading: <span class="hl-kw">false</span>,
+          isError: <span class="hl-kw">true</span>,
+          noteData,
+          noteId,
+          userId: USER_ID
+        });
+      }
+    } <span class="hl-kw">catch</span> (err) {
+      console.<span class="hl-fn">error</span>(err);
+      Alert.<span class="hl-fn">alert</span>(<span class="hl-str">'Błąd'</span>, <span class="hl-str">'Błąd połączenia z serwerem.'</span>);
+      <span class="hl-fn">setIsSubmitting</span>(<span class="hl-kw">false</span>);
+    }
+  };</pre>
+              </div>
+
+              <div class="tree-node-title" style="margin-top:1.5rem;">📂 backend/src/controllers/NoteController.js ➔ createNote() (Linie 3-12)</div>
+              <div class="tree-node-desc">
+                Handler Express.js odbierający parametry z żądania POST i wywołujący zapis w bazie.
+              </div>
+              <div class="code-display">
+                <div class="code-header">NoteController.js</div>
+                <pre>
+<span class="hl-kw">async function</span> <span class="hl-fn">createNote</span>(req, res) {
+    <span class="hl-cmt">// Wyciągnięcie parametrów wpisu z body żądania HTTP</span>
+    <span class="hl-kw">const</span> {userId, content, ammount_sleep, ammount_of_water, nutrition_intake, date_added} = req.body;
+    <span class="hl-kw">try</span> {
+        <span class="hl-cmt">// Wywołanie metody serwisu odpowiedzialnej za wstawienie rekordu do PostgreSQL</span>
+        <span class="hl-kw">const</span> note = <span class="hl-kw">await</span> <span class="hl-fn">addNote</span>(userId, content, ammount_sleep, ammount_of_water, nutrition_intake, date_added);
+        <span class="hl-cmt">// Zwrócenie odpowiedzi HTTP 201 wraz z wygenerowanym identyfikatorem wpisu (noteId)</span>
+        res.<span class="hl-fn">status</span>(<span class="hl-num">201</span>).<span class="hl-fn">json</span>({ message: <span class="hl-str">'Note created successfully'</span>, noteId: note.id });
+    } <span class="hl-kw">catch</span> (err) {
+        console.<span class="hl-fn">error</span>(err);
+        res.<span class="hl-fn">status</span>(<span class="hl-num">500</span>).<span class="hl-fn">json</span>({ error: <span class="hl-str">'Database error'</span> });
+    }
+}</pre>
+              </div>
+
+              <div class="tree-node-title" style="margin-top:1.5rem;">📂 backend/src/services/NoteService.js ➔ addNote() (Linie 12-25)</div>
+              <div class="tree-node-desc">
+                Logika bazodanowa wykonująca zapytanie SQL INSERT do tabeli Notes.
+              </div>
+              <div class="code-display">
+                <div class="code-header">NoteService.js</div>
+                <pre>
+<span class="hl-kw">async function</span> <span class="hl-fn">addNote</span>(userId, content, ammount_sleep, ammount_of_water, nutrition_intake, date_added) {
+    <span class="hl-kw">try</span> {
+        <span class="hl-cmt">// Określenie daty dodania wpisu (domyślnie aktualny czas)</span>
+        <span class="hl-kw">const</span> dateToUse = date_added ? <span class="hl-kw">new</span> <span class="hl-fn">Date</span>(date_added) : <span class="hl-kw">new</span> <span class="hl-fn">Date</span>();
+        <span class="hl-cmt">// Wykonanie sparametryzowanego zapytania SQL INSERT</span>
+        <span class="hl-kw">const</span> result = <span class="hl-kw">await</span> pool.<span class="hl-fn">query</span>(
+            <span class="hl-str">`INSERT INTO Notes (UserId, Content, Ammout_sleep, Ammout_of_water, Nutrition_intake, Date_added)
+                VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`</span>,
+            [userId, content, ammount_sleep, ammount_of_water, nutrition_intake, dateToUse]
+        );
+        <span class="hl-cmt">// Zwrócenie zapisanego obiektu wiersza z bazy danych</span>
+        <span class="hl-kw">return</span> result.rows[<span class="hl-num">0</span>];
+    } <span class="hl-kw">catch</span> (err) {
+        console.<span class="hl-fn">error</span>(err);
+        <span class="hl-kw">throw new</span> <span class="hl-fn">Error</span>(<span class="hl-str">'Database error'</span>);
+    }
+}</pre>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: 2. Analiza AI & Wektorowa -->
+      <section id="sec-ai-vector" class="doc-section">
+        <h2>2. Analiza AI & Wektorowa</h2>
+        <p class="section-desc">Jak sztuczna inteligencja wykrywa nastroje i wektorowo (za pomocą podobieństwa cosinusowego) odrzuca porady podobne do nieskutecznych.</p>
+        
+        <div class="tabs-container">
+          <div class="tabs-header">
+            <button class="tab-btn active" onclick="switchTab(this, 'tab-ai-flow')">Pętla Retry (Wektorowa)</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-ai-sim')">Wizualne Przykłady</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-ai-code')">Wywoływany Kod (1:1 z komentarzami)</button>
+          </div>
+          
+          <!-- Tab: Flow -->
+          <div id="tab-ai-flow" class="tab-content active">
+            <div class="flow-steps">
+              <div class="flow-step-item active">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <h4>Zaciągnięcie nieskutecznych porad z bazy danych</h4>
+                  <p>Serwer sprawdza, które porady w przeszłości nie zadziałały u danego użytkownika i pobiera ich wektory (embeddingi).</p>
+                </div>
+              </div>
+              <div class="flow-step-item active">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <h4>Odpytanie Gemini API</h4>
+                  <p>AI generuje zalecenia na podstawie samopoczucia pacjenta. W prompcie ma jasną instrukcję o zakazie sugerowania nieskutecznych metod.</p>
+                </div>
+              </div>
+              <div class="flow-step-item active">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <h4>Sprawdzenie podobieństwa cosinusowego (Cosine Similarity)</h4>
+                  <p>Jeśli wygenerowana rada ma podobieństwo do złej rady wyższe niż <b>0.85</b>, backend odrzuca tę próbę i prosi AI o nową.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tab: Visual Example -->
+          <div id="tab-ai-sim" class="tab-content">
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+              
+              <!-- Phone 1: Success -->
+              <div>
+                <h4 style="margin-bottom:0.5rem; text-align:center; color:#10b981;">Wizyta udana (Sukces AI)</h4>
+                <div class="phone-mockup">
+                  <div class="phone-notch"></div>
+                  <div class="phone-screen">
+                    <div class="phone-header">Raport AI</div>
+                    <div class="phone-body">
+                      <div class="mock-chart-card">
+                        <div class="mock-bar-container">
+                          <div class="mock-bar-label"><span>Szczęście</span><span>20%</span></div>
+                          <div class="mock-bar-track"><div class="mock-bar-fill" style="width: 20%; background: #10b981;"></div></div>
+                        </div>
+                        <div class="mock-bar-container">
+                          <div class="mock-bar-label"><span>Stres</span><span>80%</span></div>
+                          <div class="mock-bar-track"><div class="mock-bar-fill" style="width: 80%; background: #f43f5e;"></div></div>
+                        </div>
+                      </div>
+                      
+                      <div class="mock-advice-box">
+                        <div class="mock-advice-tag">Rada 1 (ból)</div>
+                        <div class="mock-advice-desc">Zidentyfikowano ból głowy. Zrób chłodny kompres na czoło i kark.</div>
+                      </div>
+                      <div class="mock-advice-box">
+                        <div class="mock-advice-tag">Rada 2 (stres)</div>
+                        <div class="mock-advice-desc">Wysoki poziom stresu. Napar z melisy i 15 minut spaceru.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Phone 2: Error 429 -->
+              <div>
+                <h4 style="margin-bottom:0.5rem; text-align:center; color:#f43f5e;">Błąd limitów (Error 429)</h4>
+                <div class="phone-mockup">
+                  <div class="phone-notch"></div>
+                  <div class="phone-screen">
+                    <div class="phone-header">Błąd połączenia</div>
+                    <div class="phone-body">
+                      <div class="mock-error-view">
+                        <div class="mock-error-icon">⚠️</div>
+                        <div class="mock-error-title">Przekroczono limit zapytań AI</div>
+                        <div class="mock-error-text">Wpis został zapisany pomyślnie, ale serwer AI jest przeciążony (Error 429).</div>
+                        <div class="mock-retry-btn">Spróbuj ponownie</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          
+          <!-- Tab: Code -->
+          <div id="tab-ai-code" class="tab-content">
+            <div class="code-tree">
+              
+              <div class="tree-node-title">📂 backend/src/controllers/AiController.js ➔ analyzeNoteHandler() (Linie 7-44)</div>
+              <div class="tree-node-desc">
+                Handler POST /ai/analyze-note. Przyjmuje wpis, wyciąga historię skutecznych i nieskutecznych porad z bazy i uruchamia proces analizy.
+              </div>
+              <div class="code-display">
+                <div class="code-header">AiController.js</div>
+                <pre>
+<span class="hl-kw">async function</span> <span class="hl-fn">analyzeNoteHandler</span>(req, res) {
+  <span class="hl-kw">try</span> {
+    <span class="hl-cmt">// Pobranie danych wpisu z ciała żądania HTTP</span>
+    <span class="hl-kw">const</span> { noteData, noteId, userId } = req.body;
+    <span class="hl-kw">if</span> (!noteData) <span class="hl-kw">return</span> res.<span class="hl-fn">status</span>(<span class="hl-num">400</span>).<span class="hl-fn">json</span>({ error: <span class="hl-str">'Brak noteData'</span> });
+
+    <span class="hl-cmt">// Domyślne ustawienie ID użytkownika</span>
+    <span class="hl-kw">const</span> uid = userId || noteData.userId || <span class="hl-num">1</span>;
+
+    <span class="hl-cmt">// Pobranie z bazy danych wszystkich nieskutecznych i skutecznych porad tego użytkownika (potrzebnych do promptu i weryfikacji wektorowej)</span>
+    <span class="hl-kw">const</span> [ineffective, effective] = <span class="hl-kw">await</span> Promise.<span class="hl-fn">all</span>([
+      <span class="hl-fn">getIneffectiveAdvice</span>(uid),
+      <span class="hl-fn">getEffectiveAdvice</span>(uid),
+    ]);
+
+    <span class="hl-cmt">// Wywołanie głównej usługi analizy AI z weryfikacją kolizji wektorowych</span>
+    <span class="hl-kw">const</span> analysis = <span class="hl-kw">await</span> <span class="hl-fn">analyzeNote</span>(noteData, ineffective, effective);
+
+    <span class="hl-kw">let</span> savedAdvices = [];
+    <span class="hl-kw">if</span> (noteId) {
+      <span class="hl-kw">const</span> advices = [analysis.porada1, analysis.porada2, analysis.porada3].<span class="hl-fn">filter</span>(Boolean);
+      <span class="hl-cmt">// Równolegle: </span>
+      <span class="hl-cmt">// 1. Zapisujemy nowo wygenerowane porady w tabeli AiAdvice</span>
+      // 2. Aktualizujemy emocjonalną analizę (szczęście, stres itp.) bezpośrednio w tabeli Notes
+      // 3. Generujemy i zapisujemy embedding wektorowy całej treści notatki</span>
+      [savedAdvices] = <span class="hl-kw">await</span> Promise.<span class="hl-fn">all</span>([
+        <span class="hl-fn">saveAdvice</span>(uid, noteId, advices),
+        <span class="hl-fn">updateNoteAnalysis</span>(noteId, {
+          nastroj: analysis.nastroj,
+          szczescie: analysis.szczescie,
+          smutek: analysis.smutek,
+          stres: analysis.stres,
+          zlosc: analysis.zlosc,
+        }),
+        <span class="hl-fn">generateEmbedding</span>(noteData.content || <span class="hl-str">''</span>).<span class="hl-fn">then</span>(emb => <span class="hl-fn">updateNoteEmbedding</span>(noteId, emb))
+      ]);
+    }
+
+    <span class="hl-cmt">// Zwrócenie sformatowanej analizy oraz identyfikatorów zapisanych porad do frontendu</span>
+    res.<span class="hl-fn">status</span>(<span class="hl-num">200</span>).<span class="hl-fn">json</span>({ analysis, adviceIds: savedAdvices.<span class="hl-fn">map</span>(a => a.id) });
+  } <span class="hl-kw">catch</span> (err) {
+    console.<span class="hl-fn">error</span>(<span class="hl-str">'Błąd analizy AI:'</span>, err);
+    res.<span class="hl-fn">status</span>(<span class="hl-num">500</span>).<span class="hl-fn">json</span>({ error: <span class="hl-str">'Błąd analizy AI'</span>, details: err.message });
+  }
+}</pre>
+              </div>
+
+              <div class="tree-node-title" style="margin-top:1.5rem;">📂 backend/src/services/AiService.js ➔ analyzeNote() (Linie 275-397)</div>
+              <div class="tree-node-desc">
+                Generuje analizę nastroju za pomocą modelu językowego, a także weryfikuje cosinusowo podobieństwo generowanych porad do tych oznaczonych jako nieskuteczne.
+              </div>
+              <div class="code-display">
+                <div class="code-header">AiService.js</div>
+                <pre>
+<span class="hl-kw">async function</span> <span class="hl-fn">analyzeNote</span>(noteData, ineffectiveAdvice = [], effectiveAdvice = []) {
+  <span class="hl-cmt">// Czyszczenie treści notatki z PII (danych wrażliwych typu PESEL, adres e-mail, telefon)</span>
+  <span class="hl-kw">const</span> rawContent = noteData.content || <span class="hl-str">''</span>;
+  <span class="hl-kw">const</span> cleanContent = <span class="hl-fn">redactPII</span>(rawContent);
+
+  <span class="hl-kw">const</span> ammout_sleep = noteData.ammout_sleep ?? noteData.ammount_sleep;
+  <span class="hl-kw">const</span> ammout_of_water = noteData.ammout_of_water ?? noteData.ammount_of_water;
+  <span class="hl-kw">const</span> nutrition_intake = <span class="hl-fn">redactPII</span>(noteData.nutrition_intake || <span class="hl-str">''</span>);
+  <span class="hl-kw">const</span> date_added = noteData.date_added;
+
+  <span class="hl-cmt">// Analiza, co użytkownik robi dobrze, aby nie powielać rad (np. jeśli pije odpowiednio dużo wody)</span>
+  <span class="hl-kw">const</span> doingWell = [];
+  <span class="hl-kw">if</span> (<span class="hl-fn">parseFloat</span>(ammout_of_water) >= <span class="hl-num">2.0</span>) {
+    doingWell.<span class="hl-fn">push</span>(<span class="hl-str">`Nawodnienie: pacjent pije już ${ammout_of_water}L wody dziennie.`</span>);
+  }
+  <span class="hl-kw">if</span> (<span class="hl-fn">parseFloat</span>(ammout_sleep) >= <span class="hl-num">7.5</span>) {
+    doingWell.<span class="hl-fn">push</span>(<span class="hl-str">`Sen: pacjent śpi ${ammout_sleep}h.`</span>);
+  }
+
+  <span class="hl-kw">let</span> doingWellSection = <span class="hl-str">''</span>;
+  <span class="hl-kw">if</span> (doingWell.length > <span class="hl-num">0</span>) {
+    doingWellSection = <span class="hl-str">`\n✅ CO UŻYTKOWNIK ROBI DOBRZE (NIE ZALECAJ W TYCH OBSZARACH):\n`</span>
+      + doingWell.<span class="hl-fn">map</span>(d => `  - ${d}`).<span class="hl-fn">join</span>('\n') + '\n';
+  }
+
+  <span class="hl-cmt">// Dołączenie do promptu zablokowanych, nieskutecznych porad</span>
+  <span class="hl-kw">let</span> historySection = <span class="hl-str">''</span>;
+  <span class="hl-kw">if</span> (ineffectiveAdvice.length > <span class="hl-num">0</span>) {
+    historySection += <span class="hl-str">`\n⚠️ PORADY KTÓRE NIE ZADZIAŁAŁY (NIE POWTAKZAJ ICH):\n`</span> +
+      ineffectiveAdvice.<span class="hl-fn">map</span>(a => `  - [${a.category}] ${a.advicetext}`).<span class="hl-fn">join</span>('\n') + '\n';
+  }
+
+  <span class="hl-cmt">// Dołączenie do promptu skutecznych porad z przeszłości</span>
+  <span class="hl-kw">let</span> successSection = <span class="hl-str">''</span>;
+  <span class="hl-kw">if</span> (effectiveAdvice && effectiveAdvice.length > <span class="hl-num">0</span>) {
+    successSection += <span class="hl-str">`\n✅ SKUTECZNE PORADY Z PRZESZŁOŚCI (WARTO JE ZASTOSOWAĆ W PODOBNEJ SYTUACJI):\n`</span> +
+      effectiveAdvice.<span class="hl-fn">map</span>(a => `  - [${a.category}] ${a.advicetext}`).<span class="hl-fn">join</span>('\n') + '\n';
+  }
+
+  <span class="hl-cmt">// Przygotowanie promptu klinicznego dla modelu AI</span>
+  <span class="hl-kw">const</span> prompt = <span class="hl-str">`Jesteś psychologiem zdrowia. Oceń stan pacjenta na podstawie wpisu dziennika.
+${doingWellSection}${historySection}${successSection}
+=== WPIS DZIENNIKA ===
+Data: ${date_added ? new Date(date_added).toLocaleDateString('pl-PL') : 'brak'}
+Sen: ${ammout_sleep}h, Woda: ${ammout_of_water}L, Jedzenie: ${nutrition_intake}
+Notatka: ${cleanContent}
+======================
+
+Wygeneruj ocenę stanu nastroju oraz 1-3 porady. Odpowiadaj po polsku.
+Zasady dotyczące porad:
+1. Pod żadnym pozorem nie powielaj ani nie zalecaj porad podobnych do tych, które okazały się NIESKUTECZNE (oznaczonych jako ⚠️).
+   Użytkownik wyraźnie zgłosił, że te metody dla niego NIE działają. Zmień całkowicie strategię i zaproponuj coś zupełnie innego.
+2. Jeśli pacjent ma problem analogiczny do tego, który w przeszłości został pomyślnie rozwiązany dzięki skutecznej poradzie (oznaczonej jako ✅), spróbuj zalecić tę samą lub bardzo zbliżoną poradę.`</span>;
+
+  <span class="hl-kw">let</span> attempt = <span class="hl-num">0</span>;
+  <span class="hl-kw">let</span> currentPrompt = prompt;
+  <span class="hl-kw">let</span> resultAnalysis = <span class="hl-kw">null</span>;
+
+  <span class="hl-cmt">// Główna pętla retry (maksymalnie 3 podejścia w przypadku kolizji wektorowych)</span>
+  <span class="hl-kw">while</span> (attempt < <span class="hl-num">3</span>) {
+    <span class="hl-kw">try</span> {
+      <span class="hl-cmt">// Wysłanie zapytania do modelu Gemini z włączonym formatowaniem strukturalnym Zod (Structured Outputs)</span>
+      <span class="hl-kw">const</span> completion = <span class="hl-kw">await</span> client.chat.completions.<span class="hl-fn">create</span>({
+        model: LLM_MODEL,
+        messages: [{ role: <span class="hl-str">"user"</span>, content: currentPrompt }],
+        response_format: <span class="hl-fn">zodResponseFormat</span>(MoodAnalysisFormat, <span class="hl-str">"mood_analysis"</span>),
+      });
+      resultAnalysis = JSON.<span class="hl-fn">parse</span>(completion.choices[<span class="hl-num">0</span>].message.content);
+    } <span class="hl-kw">catch</span> (err) {
+      console.<span class="hl-fn">error</span>(<span class="hl-str">"Błąd API OpenAI (analiza wpisu):"</span>, err.message);
+      <span class="hl-kw">throw</span> err;
+    }
+
+    <span class="hl-kw">let</span> collisionDetected = <span class="hl-kw">false</span>;
+    <span class="hl-kw">let</span> collisionText = <span class="hl-str">""</span>;
+
+    <span class="hl-kw">const</span> newAdvices = [resultAnalysis.porada1, resultAnalysis.porada2, resultAnalysis.porada3].<span class="hl-fn">filter</span>(Boolean);
+
+    <span class="hl-cmt">// Weryfikacja wektorowa każdej wygenerowanej porady z osobna</span>
+    <span class="hl-kw">for</span> (<span class="hl-kw">const</span> adv <span class="hl-kw">of</span> newAdvices) {
+      <span class="hl-kw">if</span> (!adv.text) <span class="hl-kw">continue</span>;
+      
+      <span class="hl-kw">let</span> newEmb = <span class="hl-kw">null</span>;
+      <span class="hl-kw">try</span> {
+        <span class="hl-cmt">// Wygenerowanie wektora (embeddingu) dla wygenerowanej przez AI porady</span>
+        newEmb = <span class="hl-kw">await</span> <span class="hl-fn">generateEmbedding</span>(adv.text);
+      } <span class="hl-kw">catch</span> (e) {
+        console.<span class="hl-fn">warn</span>(<span class="hl-str">"Błąd generowania embeddingu podczas weryfikacji:"</span>, e.message);
+      }
+
+      <span class="hl-kw">if</span> (newEmb) {
+        <span class="hl-cmt">// Porównanie z bazą nieskutecznych embeddingów użytkownika</span>
+        <span class="hl-kw">for</span> (<span class="hl-kw">const</span> bad <span class="hl-kw">of</span> ineffectiveAdvice) {
+          <span class="hl-kw">if</span> (bad.embedding) {
+            <span class="hl-cmt">// Obliczenie podobieństwa cosinusowego wektorów</span>
+            <span class="hl-kw">const</span> sim = <span class="hl-fn">cosineSimilarity</span>(newEmb, bad.embedding);
+            <span class="hl-cmt">// Jeśli podobieństwo przekracza próg 0.85 - mamy kolizję semantyczną</span>
+            <span class="hl-kw">if</span> (sim > <span class="hl-num">0.85</span>) {
+              collisionDetected = <span class="hl-kw">true</span>;
+              collisionText = bad.advicetext;
+              console.<span class="hl-fn">log</span>(`[AI Verification] Kolizja! Nowa porada "${adv.text}" jest zbyt podobna do nieskutecznej porady: "${bad.advicetext}" (Podobieństwo: ${sim.toFixed(2)})`);
+              <span class="hl-kw">break</span>;
+            }
+          }
+        }
+      }
+      <span class="hl-kw">if</span> (collisionDetected) <span class="hl-kw">break</span>;
+    }
+
+    <span class="hl-cmt">// Jeśli brak kolizji - wychodzimy z pętli i zwracamy poprawny zestaw porad</span>
+    <span class="hl-kw">if</span> (!collisionDetected) {
+      <span class="hl-kw">return</span> resultAnalysis;
+    }
+
+    <span class="hl-cmt">// W przypadku kolizji modyfikujemy prompt dla kolejnej próby (dopisując instrukcję negatywną)</span>
+    currentPrompt += `\n\n[System] UWAGA: W tej próbie wygenerowałeś poradę zbyt podobną do nieskutecznej porady użytkownika: "${collisionText}". Spróbuj wymyślić inną strategię i sformułowanie, omijając to podobieństwo!`;
+    attempt++;
+  }
+
+  <span class="hl-kw">return</span> resultAnalysis;
+}</pre>
+              </div>
+
+              <div class="tree-node-title" style="margin-top:1.5rem;">📂 backend/src/services/AiService.js ➔ cosineSimilarity() (Linie 258-270)</div>
+              <div class="tree-node-desc">
+                Matematyczny algorytm podobieństwa cosinusowego wektorów o n-wymiarach.
+              </div>
+              <div class="code-display">
+                <div class="code-header">AiService.js</div>
+                <pre>
+<span class="hl-kw">function</span> <span class="hl-fn">cosineSimilarity</span>(vecA, vecB) {
+  <span class="hl-cmt">// Sprawdzenie, czy wektory istnieją i posiadają taką samą długość (np. 1024 wymiary dla modelu stella)</span>
+  <span class="hl-kw">if</span> (!vecA || !vecB || vecA.length !== vecB.length) <span class="hl-kw">return</span> <span class="hl-num">0</span>;
+  <span class="hl-kw">let</span> dotProduct = <span class="hl-num">0.0</span>;
+  <span class="hl-kw">let</span> normA = <span class="hl-num">0.0</span>;
+  <span class="hl-kw">let</span> normB = <span class="hl-num">0.0</span>;
+  
+  <span class="hl-cmt">// Obliczenie iloczynu skalarnego oraz norm euklidesowych w pętli</span>
+  <span class="hl-kw">for</span> (<span class="hl-kw">let</span> i = <span class="hl-num">0</span>; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  
+  <span class="hl-cmt">// Zabezpieczenie przed dzieleniem przez zero</span>
+  <span class="hl-kw">if</span> (normA === <span class="hl-num">0</span> || normB === <span class="hl-num">0</span>) <span class="hl-kw">return</span> <span class="hl-num">0</span>;
+  
+  <span class="hl-cmt">// Zwrócenie podobieństwa cosinusowego (wynik z przedziału [-1, 1])</span>
+  <span class="hl-kw">return</span> dotProduct / (Math.<span class="hl-fn">sqrt</span>(normA) * Math.<span class="hl-fn">sqrt</span>(normB));
+}</pre>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: 3. Pętla Feedbacku -->
+      <section id="sec-feedback" class="doc-section">
+        <h2>3. Pętla Feedbacku (Sprzężenie Zwrotne)</h2>
+        <p class="section-desc">Jak aplikacja sprawdza skuteczność udzielonych porad na podstawie stanu pacjenta następnego dnia.</p>
+        
+        <div class="tabs-container">
+          <div class="tabs-header">
+            <button class="tab-btn active" onclick="switchTab(this, 'tab-fb-flow')">Logika Sprzężenia</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-fb-sim')">Przykład Pętli Feedbacku</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-fb-code')">Wywoływany Kod (1:1 z komentarzami)</button>
+          </div>
+          
+          <!-- Tab: Flow -->
+          <div id="tab-fb-flow" class="tab-content active">
+            <div class="flow-steps">
+              <div class="flow-step-item active">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <h4>Oznaczenie skorzystania z porady (WasFollowed = true)</h4>
+                  <p>Użytkownik zaznacza na ekranie raportu w telefonie, że wypróbował otrzymaną radę.</p>
+                </div>
+              </div>
+              <div class="flow-step-item active">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <h4>Wyszukanie słów kluczowych lub pomiarów przy kolejnym wpisie</h4>
+                  <p>Gdy użytkownik kolejnego dnia wysyła nowy wpis, frontend analizuje jego treść. Jeśli wpis zawiera słowa kluczowe (stres, napięcie, ból), oznacza to, że problem wciąż występuje (issuePersists = true).</p>
+                </div>
+              </div>
+              <div class="flow-step-item active">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <h4>Zapis skuteczności w bazie (WasEffective)</h4>
+                  <p>Serwer łączy obie informacje: <code>WasEffective = WasFollowed && !IssuePersists</code>.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tab: Visual Example -->
+          <div id="tab-fb-sim" class="tab-content">
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+              
+              <!-- Day 1 -->
+              <div>
+                <h4 style="margin-bottom:0.5rem; text-align:center; color:#fb923c;">Dzień 1 (Udzielenie porady)</h4>
+                <div class="phone-mockup">
+                  <div class="phone-notch"></div>
+                  <div class="phone-screen">
+                    <div class="phone-header">Raport Dzienny</div>
+                    <div class="phone-body">
+                      <div class="mock-advice-box">
+                        <div class="mock-advice-tag">Rada (stres)</div>
+                        <div class="mock-advice-desc">Spróbuj ćwiczeń głębokiego oddychania przez 5 minut.</div>
+                        <div class="mock-feedback-row">
+                          <div class="mock-feedback-btn active-yes">Skorzystałem</div>
+                          <div class="mock-feedback-btn">Zignorowałem</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Day 2 -->
+              <div>
+                <h4 style="margin-bottom:0.5rem; text-align:center; color:#818cf8;">Dzień 2 (Wpływ na nową poradę)</h4>
+                <div class="phone-mockup">
+                  <div class="phone-notch"></div>
+                  <div class="phone-screen">
+                    <div class="phone-header">Raport Dzienny</div>
+                    <div class="phone-body">
+                      <div style="font-size:0.75rem; color:#f43f5e; margin-bottom:8px; font-weight:600;">System wykrył stały stres. Poprzednia rada została oznaczona jako nieskuteczna.</div>
+                      
+                      <div class="mock-advice-box" style="border-color: #a855f7; background: rgba(168, 85, 247, 0.05);">
+                        <div class="mock-advice-tag" style="color:#d8b4fe;">Rada (stres) - ZMIANA</div>
+                        <div class="mock-advice-desc">Unikamy ćwiczeń oddechowych. Spróbuj naparu z melisy i 15 min spaceru na świeżym powietrzu.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          
+          <!-- Tab: Code -->
+          <div id="tab-fb-code" class="tab-content">
+            <div class="code-tree">
+
+              <div class="tree-node-title">📂 backend/src/services/AdviceService.js ➔ saveAdvice() (Linie 5-23)</div>
+              <div class="tree-node-desc">
+                Metoda serwisu zapisująca nowe porady AI w bazie wraz z wektorami wygenerowanymi przez model embeddingów.
+              </div>
+              <div class="code-display">
+                <div class="code-header">AdviceService.js</div>
+                <pre>
+<span class="hl-kw">async function</span> <span class="hl-fn">saveAdvice</span>(userId, noteId, advices) {
+  <span class="hl-kw">const</span> saved = [];
+  <span class="hl-cmt">// Iteracja po wszystkich wygenerowanych przez model poradach (1-3)</span>
+  <span class="hl-kw">for</span> (<span class="hl-kw">const</span> adv <span class="hl-kw">of</span> advices) {
+    <span class="hl-kw">let</span> embedding = <span class="hl-kw">null</span>;
+    <span class="hl-kw">try</span> {
+      <span class="hl-cmt">// Wygenerowanie wektora osadzenia (embeddingu) dla tekstu porady</span>
+      embedding = <span class="hl-kw">await</span> <span class="hl-fn">generateEmbedding</span>(adv.text || <span class="hl-str">''</span>);
+    } <span class="hl-kw">catch</span> (err) {
+      console.<span class="hl-fn">error</span>(<span class="hl-str">'Błąd generowania embeddingu dla porady:'</span>, err);
+    }
+    <span class="hl-cmt">// Zapis porady w tabeli AiAdvice w PostgreSQL</span>
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> pool.<span class="hl-fn">query</span>(
+      <span class="hl-str">`INSERT INTO AiAdvice (UserId, NoteId, AdviceText, Category, Embedding)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`</span>,
+      [userId, noteId, adv.text, adv.category || <span class="hl-str">'ogólne'</span>, embedding]
+    );
+    saved.<span class="hl-fn">push</span>(res.rows[<span class="hl-num">0</span>]);
+  }
+  <span class="hl-kw">return</span> saved;
+}</pre>
+              </div>
+              
+              <div class="tree-node-title" style="margin-top:1.5rem;">📂 backend/src/services/AdviceService.js ➔ markAdviceFeedback() (Linie 48-60)</div>
+              <div class="tree-node-desc">
+                Zapisuje w bazie sprzężenie zwrotne o tym, czy porada pomogła (WasEffective).
+              </div>
+              <div class="code-display">
+                <div class="code-header">AdviceService.js</div>
+                <pre>
+<span class="hl-kw">async function</span> <span class="hl-fn">markAdviceFeedback</span>(adviceId, wasFollowed, issuePersists) {
+  <span class="hl-kw">let</span> wasEffective = <span class="hl-kw">null</span>;
+  <span class="hl-cmt">// Wyznaczenie skuteczności porady:</span>
+  <span class="hl-cmt">// Była skuteczna (WasEffective = true) tylko wtedy, gdy pacjent z niej skorzystał (wasFollowed = true) </span>
+  <span class="hl-cmt">// i problem nie występuje kolejnego dnia (issuePersists = false)</span>
+  <span class="hl-kw">if</span> (wasFollowed !== <span class="hl-kw">null</span> && issuePersists !== <span class="hl-kw">null</span>) {
+    wasEffective = wasFollowed && !issuePersists;
+  }
+
+  <span class="hl-cmt">// Zaktualizowanie statusu w tabeli AiAdvice w bazie danych PostgreSQL</span>
+  <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> pool.<span class="hl-fn">query</span>(
+    <span class="hl-str">`UPDATE AiAdvice SET WasFollowed = $1, WasEffective = $2
+     WHERE Id = $3 RETURNING *`</span>,
+    [wasFollowed, wasEffective, adviceId]
+  );
+  <span class="hl-kw">return</span> res.rows[<span class="hl-num">0</span>];
+}</pre>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: 4. Statystyki -->
+      <section id="sec-stats" class="doc-section">
+        <h2>4. Statystyki & Podsumowania</h2>
+        <p class="section-desc">Jak aplikacja prezentuje wskaźniki tygodniowe bez konieczności ciągłego odpytywania AI.</p>
+        
+        <div class="info-panel">
+          <h3 class="info-title">Zapisane Metryki</h3>
+          <p>Podczas zapisu wpisu, poziomy emocji wygenerowane przez AI są zapisywane jako kolumny w tabeli <code>Notes</code> w bazie danych. Dzięki temu wykresy statystyk ładują się w ułamku sekundy, pobierając bezpośrednie dane z PostgreSQL i nie generując kosztów odpytywania Gemini API.</p>
+          
+          <div class="code-tree" style="margin-top:1.5rem;">
+            <div class="tree-node-title">📂 backend/src/controllers/NoteController.js ➔ getNotesForWeek() (Linie 26-36)</div>
+            <div class="tree-node-desc">Odpala zapytanie w bazie wyciągające wpisy z danego tygodnia dla zalogowanego użytkownika.</div>
+            <div class="code-display">
+              <div class="code-header">NoteController.js</div>
+              <pre>
+<span class="hl-kw">async function</span> <span class="hl-fn">getNotesForWeek</span>(req, res) {
+    <span class="hl-cmt">// Wyciągnięcie identyfikatora użytkownika oraz wybranej daty z parametrów ścieżki i zapytania URL</span>
+    <span class="hl-kw">const</span> {userId} = req.params;
+    <span class="hl-kw">const</span> { date } = req.query;
+    <span class="hl-kw">try</span> {
+        <span class="hl-cmt">// Wywołanie metody serwisu, która za pomocą zapytania SQL wybiera wpisy z 7 dni wstecz od podanej daty</span>
+        <span class="hl-kw">const</span> result = <span class="hl-kw">await</span> <span class="hl-fn">returnNotesForWeek</span>(userId, date);
+        <span class="hl-cmt">// Odesłanie listy wpisów (zawierających już zapisane oceny stresu, smutku, radości) w odpowiedzi JSON</span>
+        res.<span class="hl-fn">status</span>(<span class="hl-num">200</span>).<span class="hl-fn">json</span>(result);
+    } <span class="hl-kw">catch</span> (err) {
+        console.<span class="hl-fn">error</span>(err);
+        res.<span class="hl-fn">status</span>(<span class="hl-num">500</span>).<span class="hl-fn">json</span>({ error: <span class="hl-str">'Database error'</span> });
+    }
+}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    function switchSection(secId, navEl) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      navEl.classList.add('active');
+
+      document.querySelectorAll('.doc-section').forEach(el => el.classList.remove('active'));
+      document.getElementById(secId).classList.add('active');
+    }
+
+    function switchTab(btnEl, tabId) {
+      const container = btnEl.closest('.tabs-container');
+      
+      container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnEl.classList.add('active');
+
+      container.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+    }
+  </script>
+
+</body>
+</html>
